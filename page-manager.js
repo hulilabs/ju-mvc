@@ -20,7 +20,7 @@ define([
             'ju-mvc/router',
             'ju-shared/util',
             'ju-mvc/transition-manager',
-            'ju-mvc/dependency-loader'
+            'ju-shared/dependency-loader'
         ],
         function(
                     $,
