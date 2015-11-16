@@ -2,7 +2,7 @@
     "name": "ju-mvc",
     "description": "",
     "dependencies": {
-        "ju-shared" : "hulilabs/ju-shared"
+        "ju-shared" : "hulilabs/ju-shared#latest"
     },
     "moduleType": [
         "amd"
