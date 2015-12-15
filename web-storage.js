@@ -73,6 +73,19 @@ define([
             }
 
             return storageAvailable;
+        },
+
+        /**
+         * Clear local storage data
+         * @return boolean
+         */
+        deleteLocalStorage : function() {
+            var deleted = false;
+            if (this.isLocalStorageAvailable) {
+                window.localStorage.clear();
+                deleted = true;
+            }
+            return deleted;
         }
     });
 
