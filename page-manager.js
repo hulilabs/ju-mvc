@@ -90,6 +90,18 @@ define([
                 READY : 'ready',
                 ERROR_LOADING : 'errLoading'
             };
+
+            /***
+             * Fallback redirect route when the app needs valid credentials but wasn't provided
+             * @type {String}
+             */
+            this.defaultRoute = null;
+
+            /**
+             * Function that checks if the user authentication details(credentials, tokens, etc) are ok, this function will be called in each route if the route needs authentication
+             * @type {Function}
+             */
+            this._authenticationVerifier =  null;
         },
         /**
          * Load routes mapping with controllers
@@ -252,6 +264,8 @@ define([
                     Logger.warn('PageManager: ControllerInfo format is not valid ->', controllerInfo);
                     return;
                 }
+                /** Sets the needAuthentication value for each route as true(default), can be override it in the routes definition */
+                controllerInfo.needAuthentication = controllerInfo.needAuthentication !== false ;
                 controllerInfo.routeId = routeId;
                 log('PageManager: Processing route..', routeId, controllerInfo, routeHandler);
                 router.route(controllerInfo.route, routeId, function (urlParams, options) {
@@ -299,12 +313,46 @@ define([
 
             return (controllerIndex);
         },
+
+        /***
+         * Set the authentication verifier function to be executed in all the routes that need authentication
+         * @param {Function} authenticationVerifier - provide the auth verifier
+         * @param {String} defaultRoute - the default route to be used when the authentication fails(redirect)
+         */
+        setAuthenticationVerifier : function (authenticationVerifier, defaultRoute) {
+            if (typeof authenticationVerifier === 'function') {
+                this._authenticationVerifier = authenticationVerifier;
+            }else{
+                Logger.error('The authenticationVerifier is not defined');
+            }
+            if (typeof defaultRoute === 'string') {
+                this.defaultRoute = defaultRoute;
+            }else{
+                Logger.error('There is not a default route');
+            }
+        },
+
         /**
          * This function will handle all the routing request and will process accordingly
          * and process the page transition
          */
         _handleRoute : function (controllerInfo, urlParams, options) {
             var self = this;
+
+            /*** Check if the route needs authentication **/
+            if (controllerInfo.needAuthentication){
+                if (self._authenticationVerifier) {
+                    var isAuthenticated = self._authenticationVerifier();
+                    if (!isAuthenticated) {
+                        self.navigateToRoute(self.defaultRoute);
+                        return;
+                    }
+                } else {
+                    Logger.error('There is not an authentication verifier registered (setAuthenticationVerifier)', controllerInfo);
+                    return;
+                }
+            }
+
             log('Handling route...', arguments);
             // Check if the specified controller exists
             // Check if the specified controller has been instanciated
