@@ -101,7 +101,7 @@ define([
              * Function that checks if the user authentication details(credentials, tokens, etc) are ok, this function will be called in each route if the route needs authentication
              * @type {Function}
              */
-            this._authenticationVerifier =  null;
+            this._isAuthenticated =  null;
         },
         /**
          * Load routes mapping with controllers
@@ -321,9 +321,9 @@ define([
          */
         setAuthenticationVerifier : function (authenticationVerifier, defaultRoute) {
             if (typeof authenticationVerifier === 'function') {
-                this._authenticationVerifier = authenticationVerifier;
+                this._isAuthenticated = authenticationVerifier;
             }else{
-                Logger.error('The authenticationVerifier is not defined');
+                Logger.error('The _isAuthenticated is not defined');
             }
             if (typeof defaultRoute === 'string') {
                 this.defaultRoute = defaultRoute;
@@ -341,9 +341,8 @@ define([
 
             /*** Check if the route needs authentication **/
             if (controllerInfo.needAuthentication){
-                if (self._authenticationVerifier) {
-                    var isAuthenticated = self._authenticationVerifier();
-                    if (!isAuthenticated) {
+                if (self._isAuthenticated) {
+                    if (!self._isAuthenticated()) {
                         self.navigateToRoute(self.defaultRoute);
                         return;
                     }
