@@ -20,7 +20,8 @@ define([
             'ju-mvc/router',
             'ju-shared/util',
             'ju-mvc/transition-manager',
-            'ju-shared/dependency-loader'
+            'ju-shared/dependency-loader',
+            'ju-mvc/middleware'
         ],
         function(
                     $,
@@ -28,7 +29,8 @@ define([
                     Router,
                     Util,
                     TransitionManager,
-                    DependencyLoader
+                    DependencyLoader,
+                    Middleware
                 )
 {
     'use strict';
@@ -82,6 +84,9 @@ define([
             // Stores a local reference to the dependency loader
             this.dependencyLoader = DependencyLoader.getInst();
 
+            /** Stores a local reference to the middleware handler*/
+            this.middleware = Middleware.getInst();
+
             // Register events
             this.EV = {
                 HANDLE_ROUTE : 'handleRoute',
@@ -90,18 +95,6 @@ define([
                 READY : 'ready',
                 ERROR_LOADING : 'errLoading'
             };
-
-            /***
-             * Fallback redirect route when the app needs valid credentials but wasn't provided
-             * @type {String}
-             */
-            this.defaultRoute = null;
-
-            /**
-             * Function that checks if the user authentication details(credentials, tokens, etc) are ok, this function will be called in each route if the route needs authentication
-             * @type {Function}
-             */
-            this._isAuthenticated =  null;
         },
         /**
          * Load routes mapping with controllers
@@ -314,186 +307,158 @@ define([
             return (controllerIndex);
         },
 
-        /***
-         * Set the authentication verifier function to be executed in all the routes that need authentication
-         * @param {Function} authenticationVerifier - provide the auth verifier
-         * @param {String} defaultRoute - the default route to be used when the authentication fails(redirect)
-         */
-        setAuthenticationVerifier : function (authenticationVerifier, defaultRoute) {
-            if (typeof authenticationVerifier === 'function') {
-                this._isAuthenticated = authenticationVerifier;
-            }else{
-                Logger.error('The _isAuthenticated is not defined');
-            }
-            if (typeof defaultRoute === 'string') {
-                this.defaultRoute = defaultRoute;
-            }else{
-                Logger.error('There is not a default route');
-            }
-        },
-
         /**
          * This function will handle all the routing request and will process accordingly
          * and process the page transition
+         * @todo refactor this method, is too big
          */
         _handleRoute : function (controllerInfo, urlParams, options) {
             var self = this;
+            /** runs all the defined middlewares for the route:before phase */
+            self.middleware.run(Middleware.PHASES.ROUTE, Middleware.SUBPHASES.BEFORE, controllerInfo, function(result) {
+                log('Handling route...', arguments);
+                // Check if the specified controller exists
+                // Check if the specified controller has been instanciated
+                // Check if the specified controller was loaded
+                // We try to resolve the specified controller path to an object
+                var controllerPath = controllerInfo.controller,
+                    routeId = controllerInfo.routeId,
+                // route = controllerInfo.route,
+                    isSingleton = controllerInfo.singleton || false,
+                    injectedDependencies = controllerInfo.dependencies;
 
-            /*** Check if the route needs authentication **/
-            if (controllerInfo.needAuthentication){
-                if (self._isAuthenticated) {
-                    if (!self._isAuthenticated()) {
-                        self.navigateToRoute(self.defaultRoute);
-                        return;
-                    }
-                } else {
-                    Logger.error('There is not an authentication verifier registered (setAuthenticationVerifier)', controllerInfo);
+                if (injectedDependencies && injectedDependencies.controllerWrapper) {
+                    Logger.warn('PageManager: invalid property name "controllerWrapper"');
+                }
+
+                // adds the controller wrapper as a dependency to be loaded
+                var wrapperOptions;
+                if (controllerInfo.controllerWrapper) {
+                    injectedDependencies = injectedDependencies || {};
+                    wrapperOptions = self._addWrapperDependency(injectedDependencies, controllerInfo.controllerWrapper);
+                }
+
+                if (!controllerPath) {
+                    log('PageManager: provided ControllerPath is null');
                     return;
                 }
-            }
 
-            log('Handling route...', arguments);
-            // Check if the specified controller exists
-            // Check if the specified controller has been instanciated
-            // Check if the specified controller was loaded
-            // We try to resolve the specified controller path to an object
-            var controllerPath = controllerInfo.controller,
-                routeId = controllerInfo.routeId,
-                // route = controllerInfo.route,
-                isSingleton = controllerInfo.singleton || false,
-                injectedDependencies = controllerInfo.dependencies;
+                var alreadyInStack = false,
+                    rootStackIndex = -1,
+                    removedControllers = null;
 
-            if (injectedDependencies && injectedDependencies.controllerWrapper) {
-                Logger.warn('PageManager: invalid property name "controllerWrapper"');
-            }
+                // This function load the controller once it has been instanciated
+                var loadControllerCallback = function () {
+                    // This is a recently added controller is it was not in the stack
+                    // previously
+                    self.recentlyAddedController = !alreadyInStack;
 
-            // adds the controller wrapper as a dependency to be loaded
-            var wrapperOptions;
-            if (controllerInfo.controllerWrapper) {
-                injectedDependencies = injectedDependencies || {};
-                wrapperOptions = this._addWrapperDependency(injectedDependencies, controllerInfo.controllerWrapper);
-            }
+                    // At this point the instance should already exists, because
+                    // it was already in the stack or it was created by the _pushRouteToStack
+                    // method
+                    var instance = isSingleton ? self.singletonControllerDict[controllerPath]
+                        : self.controllerDict[routeId];
+                    log ('PageManager: isSingleton? ', isSingleton);
 
-            if (!controllerPath) {
-                log('PageManager: provided ControllerPath is null');
-                return;
-            }
+                    // Handle route
+                    var method = 'handleRoute'; // Default method method to handle requests
+                    if (controllerInfo.method) {
+                        method = controllerInfo.method;
+                    }
 
-            var alreadyInStack = false,
-                rootStackIndex = -1,
-                removedControllers = null;
+                    // Check if valid instance was found
+                    if (instance) {
+                        // passes a controller instance to any available preprocessor
+                        var wrapperPromise = self._wrapControllerBeforeHandlingRoute(instance, controllerInfo, alreadyInStack);
 
-            // This function load the controller once it has been instanciated
-            var loadControllerCallback = function () {
-                // This is a recently added controller is it was not in the stack
-                // previously
-                self.recentlyAddedController = !alreadyInStack;
+                        // the flow continues once the wrapper is ready or if there's no wrapper
+                        wrapperPromise.then(function() {
+                            instance[method].call(instance, alreadyInStack, controllerInfo.params, urlParams);
 
-                // At this point the instance should already exists, because
-                // it was already in the stack or it was created by the _pushRouteToStack
-                // method
-                var instance = isSingleton ? self.singletonControllerDict[controllerPath]
-                                           : self.controllerDict[routeId];
-                log ('PageManager: isSingleton? ', isSingleton);
+                            // If a handler was provided by the original navigateToPage, then execute it
+                            if (options && options.routeHandled) {
+                                var routeHandled = options.routeHandled;
+                                routeHandled.call(self, controllerInfo, instance);
+                            }
 
-                // Handle route
-                var method = 'handleRoute'; // Default method method to handle requests
-                if (controllerInfo.method) {
-                    method = controllerInfo.method;
-                }
+                            self.currentControllerName = controllerPath;
+                            self.currentController = instance;
 
-                // Check if valid instance was found
-                if (instance) {
-                    // passes a controller instance to any available preprocessor
-                    var wrapperPromise = self._wrapControllerBeforeHandlingRoute(instance, controllerInfo, alreadyInStack);
+                            // After handled route
+                            self.trigger(self.EV.HANDLE_ROUTE, controllerInfo);
+                        });
 
-                    // the flow continues once the wrapper is ready or if there's no wrapper
-                    wrapperPromise.then(function() {
-                        instance[method].call(instance, alreadyInStack, controllerInfo.params, urlParams);
+                    } else {
+                        Logger.warn('Could not find controller since it was not in the mapping', isSingleton, controllerPath, routeId);
+                    }
+                };
 
-                        // If a handler was provided by the original navigateToPage, then execute it
-                        if (options && options.routeHandled) {
-                            var routeHandled = options.routeHandled;
-                            routeHandled.call(self, controllerInfo, instance);
+
+                // Check if the current controller has a root controller
+                // This means that we cannot load the specified controlled unless the rootId exists in the controller stack
+                if (controllerInfo.rootId) {
+
+                    // First, check if the root controller is loaded in the current context
+                    rootStackIndex = self._getControllerIndexInStack(controllerInfo.rootId);
+                    if (rootStackIndex == -1) {
+                        log('PageManager: root was not found, re-routing to root...');
+                        // As the root is not loaded then we re-route to the root
+                        var rootController = self.routesMap[controllerInfo.rootId],
+                            rootPath = rootController.defaultRoute;
+
+                        if (!rootPath) {
+                            Logger.error('Attempting to navigate to a rootId without defaultRoute', rootController);
                         }
 
-                        self.currentControllerName = controllerPath;
-                        self.currentController = instance;
-
-                        // After handled route
-                        self.trigger(self.EV.HANDLE_ROUTE, controllerInfo);
-                    });
-
-                } else {
-                    Logger.warn('Could not find controller since it was not in the mapping', isSingleton, controllerPath, routeId);
-                }
-            };
-
-
-            // Check if the current controller has a root controller
-            // This means that we cannot load the specified controlled unless the rootId exists in the controller stack
-            if (controllerInfo.rootId) {
-
-                // First, check if the root controller is loaded in the current context
-                rootStackIndex = this._getControllerIndexInStack(controllerInfo.rootId);
-                if (rootStackIndex == -1) {
-                    log('PageManager: root was not found, re-routing to root...');
-                    // As the root is not loaded then we re-route to the root
-                    var rootController = this.routesMap[controllerInfo.rootId],
-                        rootPath = rootController.defaultRoute;
-
-                    if (!rootPath) {
-                        Logger.error('Attempting to navigate to a rootId without defaultRoute', rootController);
+                        self.navigateToPage(rootPath);
+                        return;
                     }
 
-                    this.navigateToPage(rootPath);
-                    return;
-                }
-
-                // If the controller is already in the stack
-                var stackIndex = this._getControllerIndexInStack(routeId);
-                if (stackIndex != -1) {
-                    // Remove all the controllers in the stack beyond the
-                    // current controller
-                    removedControllers = this.controllerStack.splice(stackIndex + 1);
-                    alreadyInStack = true;
-                    log('Removed controllers: ', removedControllers);
-                    this._destroyControllers(removedControllers);
-                    loadControllerCallback();
+                    // If the controller is already in the stack
+                    var stackIndex = self._getControllerIndexInStack(routeId);
+                    if (stackIndex != -1) {
+                        // Remove all the controllers in the stack beyond the
+                        // current controller
+                        removedControllers = self.controllerStack.splice(stackIndex + 1);
+                        alreadyInStack = true;
+                        log('Removed controllers: ', removedControllers);
+                        self._destroyControllers(removedControllers);
+                        loadControllerCallback();
+                    } else {
+                        self._pushRouteToStack(routeId, controllerPath, injectedDependencies, isSingleton, loadControllerCallback);
+                    }
                 } else {
-                    this._pushRouteToStack(routeId, controllerPath, injectedDependencies, isSingleton, loadControllerCallback);
+
+                    // This is a root controller
+                    rootStackIndex = self._getControllerIndexInStack(routeId);
+                    if (rootStackIndex == -1) {
+                        // This is a routeId that is not registered in the stack and behaves as a root controller
+                        // we need to clear the stack and create an instance of it
+                        // This will create a new ´virtual´ stack
+                        self._destroyControllers(self.controllerStack);
+                        self.controllerStack.length = 0;
+                        self._pushRouteToStack(routeId, controllerPath, injectedDependencies, isSingleton, loadControllerCallback);
+                    } else {
+                        // If this route was already in the stack then we
+                        // Remove all the controllers in the stack beyond
+
+                        // This flow corresponds to 2 possible valid scenarios:
+                        // 1 - The Page Manager is reloading the same route that is currently loaded in the URL
+                        //      (using either the reload method or through any of the navigateMethods but to the same route)
+                        // 2 - The controller stack has one or more routes loaded into it and from a children controller
+                        //     we are indicating the page manager to route back to a controller that already exists
+                        //     in the stack (most likely the root controller). This method will destroy all the previous
+                        //     controllers, leaving just the root controller alive.
+
+                        // @todo: this flow reloads current and next landing component but it shouldnt
+                        removedControllers = self.controllerStack.splice(rootStackIndex + 1);
+                        alreadyInStack = true;
+                        log('Removed controllers: ', removedControllers);
+                        self._destroyControllers(removedControllers);
+                        loadControllerCallback();
+                    }
                 }
-            } else {
-
-                // This is a root controller
-                rootStackIndex = this._getControllerIndexInStack(routeId);
-                if (rootStackIndex == -1) {
-                    // This is a routeId that is not registered in the stack and behaves as a root controller
-                    // we need to clear the stack and create an instance of it
-                    // This will create a new ´virtual´ stack
-                    this._destroyControllers(this.controllerStack);
-                    this.controllerStack.length = 0;
-                    this._pushRouteToStack(routeId, controllerPath, injectedDependencies, isSingleton, loadControllerCallback);
-                } else {
-                    // If this route was already in the stack then we
-                    // Remove all the controllers in the stack beyond
-
-                    // This flow corresponds to 2 possible valid scenarios:
-                    // 1 - The Page Manager is reloading the same route that is currently loaded in the URL
-                    //      (using either the reload method or through any of the navigateMethods but to the same route)
-                    // 2 - The controller stack has one or more routes loaded into it and from a children controller
-                    //     we are indicating the page manager to route back to a controller that already exists
-                    //     in the stack (most likely the root controller). This method will destroy all the previous
-                    //     controllers, leaving just the root controller alive.
-
-                    // @todo: this flow reloads current and next landing component but it shouldnt
-                    removedControllers = this.controllerStack.splice(rootStackIndex + 1);
-                    alreadyInStack = true;
-                    log('Removed controllers: ', removedControllers);
-                    this._destroyControllers(removedControllers);
-                    loadControllerCallback();
-                }
-            }
+            });
         },
         /**
          * Pushes the routeId to the top of the stack
