@@ -386,6 +386,9 @@ define([
 
                             // After handled route
                             self.trigger(self.EV.HANDLE_ROUTE, controllerInfo);
+                        })
+                        ['catch'](function (err) {
+                            Logger.error(err);
                         });
 
                     } else {
@@ -553,7 +556,9 @@ define([
                         Logger.error('PageManager: Controller was not found: ', controllerPath);
                     }
                 });
-
+            })
+            ['catch'](function (err) {
+                Logger.error(err);
             });
         },
         _dispatchToPage : function (controllerPath, controller) {
@@ -684,11 +689,11 @@ define([
         _wrapControllerBeforeHandlingRoute : function(controller, controllerInfo, alreadyInStack) {
             if (controller.__wrapper) {
                 var wrapperOptions = ('string' === typeof controllerInfo.controllerWrapper) ?
-                                     {} : controllerInfo.controllerWrapper;
-
-                return new Promise(function(resolve) {
-                    controller.__wrapper.wrap(resolve, wrapperOptions, alreadyInStack);
-                });
+                                     {} : controllerInfo.controllerWrapper,
+                    wrapperPromise = new Promise(function(resolve) {
+                                        controller.__wrapper.wrap(resolve, wrapperOptions, alreadyInStack);
+                                    });
+                return wrapperPromise;
             }
 
             return Promise.resolve(null);
