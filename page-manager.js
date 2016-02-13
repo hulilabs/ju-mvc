@@ -84,9 +84,6 @@ define([
             // Stores a local reference to the dependency loader
             this.dependencyLoader = DependencyLoader.getInst();
 
-            /** Stores a local reference to the middleware handler*/
-            this.middleware = Middleware.getInst();
-
             // Register events
             this.EV = {
                 HANDLE_ROUTE : 'handleRoute',
@@ -218,6 +215,15 @@ define([
             }
             return true;
         },
+
+        /***
+         * Defines the middleware handler
+         * @param middleware
+         */
+        setMiddleware : function (middleware) {
+            /** Stores a local reference to the middleware handler */
+            this.middleware = middleware;
+        },
         /**
          * Private functions
          */
@@ -257,8 +263,6 @@ define([
                     Logger.warn('PageManager: ControllerInfo format is not valid ->', controllerInfo);
                     return;
                 }
-                /** Sets the needAuthentication value for each route as true(default), can be override it in the routes definition */
-                controllerInfo.needAuthentication = controllerInfo.needAuthentication !== false ;
                 controllerInfo.routeId = routeId;
                 log('PageManager: Processing route..', routeId, controllerInfo, routeHandler);
                 router.route(controllerInfo.route, routeId, function (urlParams, options) {

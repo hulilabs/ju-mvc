@@ -7,7 +7,7 @@
  * |_| |_|\___,_||_| |_|
  *
  * (c) Huli Inc
- */
+ */// jscs:ignore disallowMultipleLineBreaks
 
 
 /**
@@ -18,51 +18,105 @@
  */
 
 define([
-	'ju-shared/observable-class'
+    'ju-shared/observable-class'
 ],
-function (
-	ObservableClass
-){
-	'use strict';
+function(
+    ObservableClass
+) {
+    'use strict';
+    var Middleware = ObservableClass.extend({
 
+        /**
+        * Object used to store all the phases and middlewares
+        * @type {Object}
+        */
+        phases : {},
 
-	/** Constants **/
+        /**
+        * @constructor
+        * @alias module:ju-mvc/middleware
+        * @param {Object} [opts] - configuration options
+        * @param {Boolean} [opts.useDefaultPhases] - indicates if want to initialize the default phases
+        * @param {Object} [opts.customPhases] - configuration options
+        */
+        init : function(opts) {
+            //initialize the default phases
+            this.initDefaultPhases = opts && opts.useDefaultPhases ? opts.useDefaultPhases : true;
+            if (this.initDefaultPhases) {
+                this._initDefaultPhases();
+            }
+            //initialize the custom phases
+            if (opts && opts.customPhases) {
+                this._initCustomPhases(opts.customPhases);
+            }
+        },
 
-    /**
-     * @constant {String} DEFAULT_SUBPHASE - if the subphase is not provided when adding a middleware this will be use
-     */
-	var DEFAULT_SUBPHASE = 'during';
-
-    /**
-     * Object used to store all the phases and middlewares
-     * @type {Object}
-     */
-    var phases = {};
-
-
-    /**
-     * Create an instance of middleware
-     * @constructor
-     * @alias module:ju-mvc/middleware
-     * @returns {Object} Middleware
-     */
-	var Middleware = ObservableClass.extend({
-
-
-		init : function(){
-            //initialize the phases
-            var pashesKeys = Object.keys(Middleware.PHASES);
-            for (var currentPhase = 0, pashesTotal = pashesKeys.length; currentPhase < pashesTotal; currentPhase++) {
-                var phaseName = Middleware.PHASES[pashesKeys[currentPhase]];
-                if(!phases[phaseName]){
-                    phases[phaseName] = {
+         /**
+          * Initialize the phases object
+          * @private
+          */
+        _initDefaultPhases : function() {
+            //Get all the phases
+            var phasesKeys = Object.keys(Middleware.PHASES);
+            // for each phase(key), create an array for all the sub phases
+            for (var currentPhase = 0, phasesTotal = phasesKeys.length; currentPhase < phasesTotal; currentPhase++) {
+                var phaseName = Middleware.PHASES[phasesKeys[currentPhase]];
+                if (!this.phases[phaseName]) {
+                    this.phases[phaseName] = {
                         before : [],
                         during : [],
                         after : []
                     };
                 }
             }
-		},
+        },
+
+        /**
+         * The definition of a Phase object
+         * @typedef {Object} Phase
+         * @property {String} name - Phase name
+         * @property {String[]} subPhases - An array of strings: contains all the subphases names.
+         * @example {
+            name : 'render',
+            subPhases : ['subPhase1', 'subPhase2']
+           }
+         */
+
+        /**
+         * Adds to the phases object the custom phases
+         * @param {Phase[]} phases - array of phases
+         * @private
+         */
+        _initCustomPhases : function(phases) {
+            if (phases && phases.length) {
+                for (var currentPhase = 0, phasesTotal = phases.length; currentPhase < phasesTotal; currentPhase++) {
+                    this.addPhase(phases[currentPhase]);
+                }
+            }
+        },
+
+        /**
+         * Add a custom phase to the middleware
+         * @param {Phase} phase - phase object
+         */
+        addPhase : function(phase) {
+            // check if should create the phase with the default subphases
+            if (this.initDefaultPhases) {
+                this.phases[phase.name] = {
+                    before : [],
+                    during : [],
+                    after : []
+                };
+            }else {
+                this.phases[phase.name] = {};
+            }
+            // for each subPhase create an empty array
+            if (phase && phase.subPhases && phase.subPhases.length) {
+                for (var currentSubPhase = 0, subPhasesTotal = phase.subPhases.length; currentSubPhase < subPhasesTotal; currentSubPhase++) {
+                    this.phases[phase.name][phase.subPhases[currentSubPhase]] = [];
+                }
+            }
+        },
 
         /**
          * Add a middleware to a specified phase
@@ -71,19 +125,19 @@ function (
          * @param {String} subPhase - check Middleware.SUBPHASES
          * @returns {boolean}
          */
-		add : function (middleware, phase, subPhase){
-			if (phases[phase]){
-				if (phases[phase][subPhase]){
-					phases[phase][subPhase].push(middleware);
-				}
-				else{
-					phases[phase][DEFAULT_SUBPHASE].push(middleware);
-				}
+        add : function(middleware, phase, subPhase) {
+            var phases = this.phases;
+            if (phases[phase]) {
+                if (phases[phase][subPhase]) {
+                    phases[phase][subPhase].push(middleware);
+                } else {
+                    phases[phase][Middleware.DEFAULT_SUBPHASE].push(middleware);
+                }
                 return true;
-			}else {
+            }else {
                 return false;
             }
-		},
+        },
 
         /**
          * Executes the middlewares sequentially for the given phase/subphase
@@ -93,21 +147,21 @@ function (
          * @param {Function} [onSuccess] - callback success function
          * @param {Function} [onError] - callback error function
          */
-		run : function(phase, subPhase, params, onSuccess, onError) {
-			if (phases[phase] && phases[phase][subPhase]){
-				this._runAll(phases[phase][subPhase], params).then(function (result) {
-					log('Middleware: ran successfully '+ phase + ':' + subPhase, result);
-					if (typeof onSuccess === 'function'){
-						onSuccess(result);
-					}
-				}).catch(function (error) {
-                    log('Middleware: ran with errors '+ phase + ':' + subPhase, error);
-					if (typeof onError === 'function'){
-						onError(error);
-					}
-				});
-			}
-		},
+        run : function(phase, subPhase, params, onSuccess, onError) {
+            if (this.phases[phase] && this.phases[phase][subPhase]) {
+                this._runAll(this.phases[phase][subPhase], params).then(function(result) {
+                    log('Middleware: ran successfully ' + phase + ':' + subPhase, result);
+                    if (typeof onSuccess === 'function') {
+                        onSuccess(result);
+                    }
+                })['catch'](function(error) {
+                    log('Middleware: ran with errors ' + phase + ':' + subPhase, error);
+                    if (typeof onError === 'function') {
+                        onError(error);
+                    }
+                });
+            }
+        },
 
         /***
          * Executes the middlewares sequentially
@@ -116,96 +170,106 @@ function (
          * @returns {Promise}
          * @private
          */
-		_runAll : function(middlewares, params) {
-            /** iterates over the middleware promises. */
-			var _self =  this;
-            return middlewares.reduce( function(prevMiddlewarePromise, currentMiddleware) {
-                return prevMiddlewarePromise.then( function (value) {
-                    return new Promise(function (resolve, reject) {
-                        var middlewarePromise = _self._getMiddlewarePromise(currentMiddleware, params, value);
-                        return middlewarePromise.then(
-                            function onResolved() {
-                                // resolve the promise in order to continue with main flow
-                                resolve.apply(this, arguments);
-                            },
-                            function onRejected(error) {
-                                if (typeof currentMiddleware.errorHandler === 'function') {
-                                    try {
-                                        /** if there is an errorHandler, call the resolve with returned value of the errorHandler
-                                         in order to continue with the main flow */
-                                        resolve(params, currentMiddleware.errorHandler(error));
-                                    }
-                                    catch (e) {
-                                        /** if there is an error in the middleware errorHandler, ejects the promises and stop the execution  */
-                                        reject(e);
-                                    }
-                                } else {
-                                    /** if there is not an errorHandler, rejects the promises and stop the execution **/
-                                    reject(error);
-                                }
-                            }
-                        );
-                    });
+        _runAll : function(middlewares, params) {
+            var self = this;
+            // iterates over the middleware promises
+            return middlewares.reduce(function(prevMiddleware, currentMiddleware) {
+                return prevMiddleware.then(function(value) {
+                    //execute the next middleware when the previous is resolved
+                    return self._executeMiddleware(value, currentMiddleware, params);
                 });
             }, Promise.resolve());
-		},
+        },
 
+         /**
+          * Executes the middleware run function, handles the error and returns a promise
+          * @param {Object*} value - previous middleware returned value
+          * @param {Object} middleware - middleware to run
+          * @param {Object} [params] - global param to pass to the middleware
+          * @returns {Promise}
+          * @private
+          */
+         _executeMiddleware : function(value, middleware, params) {
+            var self = this;
+            return new Promise(function(resolve, reject) {
+                var middlewarePromise = self._getMiddlewarePromise(middleware, params, value);
+                return middlewarePromise.then(
+                    function onResolved() {
+                        /** resolve the promise in order to continue with main flow */
+                        resolve(arguments);
+                    },
+                    function onRejected(error) {
+                        if (typeof middleware.errorHandler === 'function') {
+                            try {
+                                /** if there is an errorHandler, call the resolve with returned value of the
+                                 * errorHandler in order to continue with the main flow */
+                                resolve(params, middleware.errorHandler(error));
+                            }
+                            catch (e) {
+                                /** if there is an error in the middleware errorHandler, rejects the promises and stops
+                                 *  the execution  */
+                                reject(e);
+                            }
+                        } else {
+                            /** if there is not an errorHandler, rejects the promises and stop the execution **/
+                            reject(error);
+                        }
+                    }
+                );
+            });
+        },
 
-		/**
-		 * Works as a wrapperExecutes, executes the middleware.run function and always returns a promise even if the
-		 * run method is promise or a regular function
-		 * @param {Object} middleware - middleware to run
-		 * @param {Object?} params - run method params
-		 * @param value - previous promise returned value
+        /**
+         * Works as a wrapperExecutes, executes the middleware.run function and always returns a promise even if the
+         * run method is promise or a regular function
+         * @param {Object} middleware - middleware to run
+         * @param {Object?} params - run method params
+         * @param value - previous promise returned value
          * @returns {Promise}
          * @private
          */
-		_getMiddlewarePromise : function (middleware,params ,value) {
-			var middlewarePromise;
-			try{
-				middlewarePromise = middleware.run(params, value);
-				if (middlewarePromise && typeof middlewarePromise.then === 'function'){
-					return middlewarePromise;
-				}else{
-					if (middlewarePromise && !(middlewarePromise instanceof Error)){
-						return Promise.resolve(middlewarePromise);
-					}else
-					{
-						return Promise.reject(middlewarePromise);
-					}
-				}
-			}catch(error){
-				return Promise.reject(error);
-			}
-		}
-	});
+        _getMiddlewarePromise : function(middleware, params, value) {
+            var middlewarePromise;
+            try {
+                middlewarePromise = middleware.run(params, value);
+                if (middlewarePromise && typeof middlewarePromise.then === 'function') {
+                    return middlewarePromise;
+                }else {
+                    if (middlewarePromise && !(middlewarePromise instanceof Error)) {
+                        return Promise.resolve(middlewarePromise);
+                    }else {
+                        return Promise.reject(middlewarePromise);
+                    }
+                }
+            }catch (error) {
+                return Promise.reject(error);
+            }
+        }
+    });
 
-
-
-	Middleware.classMembers({
-		/**
-		 * @constant {Object} PHASES - enum to define all the phases
-		 */
-		PHASES : {
-			ROUTE : 'route'
-		},
+    Middleware.classMembers({
+        /**
+         * @constant {Object} PHASES - enum to define all the phases
+         */
+        PHASES : {
+            ROUTE : 'route'
+        },
 
         /**
          * @constant {Object} SUBPHASES - enum to define all the sub phases
          */
-		SUBPHASES : {
-			BEFORE : 'before',
-			DURING : 'during',
-			AFTER : 'after'
-		},
+        SUBPHASES : {
+            BEFORE : 'before',
+            DURING : 'during',
+            AFTER : 'after'
+        },
 
-		opts : {},
+        /**
+         * @constant {String} DEFAULT_SUBPHASE - if the subphase is not provided when adding a middleware this will be use
+         */
+        DEFAULT_SUBPHASE : 'during'
+    });
 
-		configure : function(opts) {
-			Middleware.opts = opts;
-		}
-	});
-
-	return Middleware;
+    return Middleware;
 
 });
