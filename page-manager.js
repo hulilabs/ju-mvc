@@ -7,7 +7,7 @@
  * |_| |_|\___,_||_| |_|
  *
  * (c) Huli Inc
- */// jscs:ignore disallowMultipleLineBreaks
+ */
 
 /**
  * Status Constants
