@@ -37,16 +37,16 @@ function(
         * @alias module:ju-mvc/middleware
         * @param {Object} [opts] - configuration options
         * @param {Boolean} [opts.useDefaultPhases] - indicates if want to initialize the default phases
-        * @param {Object} [opts.customPhases] - configuration options
+        * @param {Phase[]} [opts.customPhases] - custom phases
         */
         init : function(opts) {
             //initialize the default phases
-            this.initDefaultPhases = opts && opts.useDefaultPhases ? opts.useDefaultPhases : true;
+            this.initDefaultPhases = opts ? opts.useDefaultPhases : true;
             if (this.initDefaultPhases) {
                 this._initDefaultPhases();
             }
             //initialize the custom phases
-            if (opts && opts.customPhases) {
+            if (opts && opts.customPhases && opts.customPhases.length) {
                 this._initCustomPhases(opts.customPhases);
             }
         },
@@ -58,17 +58,27 @@ function(
         _initDefaultPhases : function() {
             //Get all the phases
             var phasesKeys = Object.keys(Middleware.PHASES);
-            // for each phase(key), create an array for all the sub phases
+            // for each phase(key), create an array for each subphase
             for (var currentPhase = 0, phasesTotal = phasesKeys.length; currentPhase < phasesTotal; currentPhase++) {
                 var phaseName = Middleware.PHASES[phasesKeys[currentPhase]];
-                if (!this.phases[phaseName]) {
-                    this.phases[phaseName] = {
-                        before : [],
-                        during : [],
-                        after : []
-                    };
-                }
+                this.phases[phaseName] = this._getDefaultSubPhases();
             }
+        },
+
+        /**
+         * Returns an object with all the default subphases.
+         * @returns {Object}
+         * @private
+         */
+        _getDefaultSubPhases : function() {
+            var subPhases = {};
+            var subPhasesKeys = Object.keys(Middleware.SUBPHASES);
+            // for each phase(key), create an array for all the sub phases
+            for (var currentSubPhase = 0, subPhasesTotal = subPhasesKeys.length; currentSubPhase < subPhasesTotal; currentSubPhase++) {
+                var subPhaseName = Middleware.SUBPHASES[subPhasesKeys[currentSubPhase]];
+                subPhases[subPhaseName] = [];
+            }
+            return subPhases;
         },
 
         /**
@@ -102,11 +112,7 @@ function(
         addPhase : function(phase) {
             // check if should create the phase with the default subphases
             if (this.initDefaultPhases) {
-                this.phases[phase.name] = {
-                    before : [],
-                    during : [],
-                    after : []
-                };
+                this.phases[phase.name] = this._getDefaultSubPhases();
             }else {
                 this.phases[phase.name] = {};
             }
@@ -183,7 +189,7 @@ function(
 
          /**
           * Executes the middleware run function, handles the error and returns a promise
-          * @param {Object*} value - previous middleware returned value
+          * @param {Object?} value - previous middleware returned value
           * @param {Object} middleware - middleware to run
           * @param {Object} [params] - global param to pass to the middleware
           * @returns {Promise}

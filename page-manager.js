@@ -90,6 +90,8 @@ define([
                 READY : 'ready',
                 ERROR_LOADING : 'errLoading'
             };
+
+            this.middleware = Middleware.getInst();
         },
         /**
          * Load routes mapping with controllers
