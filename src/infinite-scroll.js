@@ -9,8 +9,6 @@
  * (c) Huli Inc
  */
 
-
-
 define([
             'jquery',
             'ju-shared/class'
@@ -18,8 +16,7 @@ define([
         function(
                     $,
                     Class
-                )
-{
+                ) {
     'use strict';
 
     /**
@@ -35,12 +32,11 @@ define([
          *                             }
          * @return {void}
          */
-        init : function (userParams)
-        {
+        init : function(userParams) {
             log('InfiniteScroll init');
             // Initialize query params
             var params = {
-                listenScrollOnElem: window,
+                listenScrollOnElem : window,
                 thresholdCallback : null,
                 bottomThreshold : 0,
                 contentDocument : document
@@ -50,24 +46,22 @@ define([
             this.params = params;
             this.$listenScrollOnElem = $(this.params.listenScrollOnElem);
         },
-        listen : function ()
-        {
+        listen : function() {
             this.$listenScrollOnElem.scroll($.proxy(this._onScrollTrigger, this));
         },
-        _onScrollTrigger : function ()
-        {
+        _onScrollTrigger : function() {
             var self = this;
             var viewPortScrollTop = self.$listenScrollOnElem.scrollTop(),
                 viewPortHeight = self.$listenScrollOnElem.height(),
                 contentHeight = $(self.params.contentDocument).height(),
                 threshold = self.params.bottomThreshold,
-                scrollOffset = Math.max(contentHeight - viewPortHeight - threshold , 0);
+                scrollOffset = Math.max(contentHeight - viewPortHeight - threshold, 0);
 
             // log(viewPortScrollTop, viewPortHeight, contentHeight, threshold, scrollOffset);
-            if  ((contentHeight > viewPortHeight) && (viewPortScrollTop >= scrollOffset)) {
+            if ((contentHeight > viewPortHeight) && (viewPortScrollTop >= scrollOffset)) {
                 log('Reached Infinite scroll threshold...');
                 if (self.params.thresholdCallback) {
-                	self.params.thresholdCallback();
+                    self.params.thresholdCallback();
                 }
             }
 

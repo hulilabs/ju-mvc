@@ -9,8 +9,6 @@
  * (c) Huli Inc
  */
 
-
-
 /**
  * Controller Class
  */
@@ -23,10 +21,8 @@ define([
                 $,
                 ObservableClass,
                 Router
-                )
-{
+                ) {
     'use strict';
-
 
     // Constants
     var HIDDEN_PAGE_CSS = 'hidden';
@@ -35,7 +31,7 @@ define([
         /**
          * Default constructor
          */
-        init: function (elem, params) {     // jshint ignore:line
+        init : function(elem, params) {     // jshint ignore:line
             this.MAIN_CONTENT_SELECTOR = '#site-content';
 
             // This variable must have a jQuery reference to the view of this controller
@@ -51,7 +47,7 @@ define([
         /**
          * Must be implemented in child classes
          */
-        handleRoute : function (alreadyInStack, routerParams, urlParams) {  // jshint ignore:line
+        handleRoute : function(alreadyInStack, routerParams, urlParams) {  // jshint ignore:line
             this.routerParams = routerParams;
             this.alreadyInStack = alreadyInStack;
             this.urlParams = urlParams;
@@ -62,33 +58,32 @@ define([
         /**
          * Must be implemented in child classes
          */
-        load : function () {},
+        load : function() {},
         /**
          * Setup this view
          * Must be implemented in child classes
          */
-        setupPage : function () {},
+        setupPage : function() {},
 
         /**
          * Binds events to the page
          */
-        bindEvents : function () {},
+        bindEvents : function() {},
 
-        setContent : function (htmlContent)
-        {
+        setContent : function(htmlContent) {
             this._setContainerWithHtml(htmlContent);
             $(this.MAIN_CONTENT_SELECTOR).html(this.$container);
         },
         /**
          * Overwrite this method if the page container is not equal to the local $container
          */
-        findPageContainer : function () {
+        findPageContainer : function() {
             return this.$container;
         },
         /**
          * Appends a page markup to the tab's container
          */
-        appendPage : function (htmlContent) {
+        appendPage : function(htmlContent) {
             // Add new content
             this._setContainerWithHtml(htmlContent);
             this.$container.addClass(HIDDEN_PAGE_CSS);
@@ -97,9 +92,9 @@ define([
         /**
          * Register events to the EV variable
          */
-        registerEventNames : function (events) {
+        registerEventNames : function(events) {
             if (!events) { return; }
-            for(var eventAlias in events) {
+            for (var eventAlias in events) {
                 if (events.hasOwnProperty(eventAlias)) {
                     var eventName = events[eventAlias];
                     this.EV[eventAlias] = eventName;
@@ -109,7 +104,7 @@ define([
         /**
          * Private functions
          */
-        _setContainerWithHtml : function (htmlContent) {
+        _setContainerWithHtml : function(htmlContent) {
             // Add new content
             this.$container = htmlContent instanceof $ ? htmlContent : $($.parseHTML(htmlContent));
             this.$pageContainer = this.findPageContainer();
@@ -118,7 +113,7 @@ define([
          * A call to this function will clean up any resources that should be removed
          * from memory or from the DOM tree
          */
-        destroy : function () {
+        destroy : function() {
             // if (this.$pageContainer) {
             //     this.$pageContainer.remove();
             // } else {
@@ -130,7 +125,7 @@ define([
          * The idea is to be used as destroy but to hide elements on the actual view before display
          * the new view
          */
-        onViewHidden : function () {
+        onViewHidden : function() {
             //
         }
     });

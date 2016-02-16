@@ -18,7 +18,7 @@ define([
             'ju-shared/class',
             'ju-shared/util'
         ],
-        function (
+        function(
             $,
             Class,
             Util
@@ -32,7 +32,7 @@ define([
      * observable class method
      */
     var WebStorage = Class.extend({
-        init : function () {
+        init : function() {
             this.isLocalStorageAvailable = this.getIsLocalStorageAvailable();
         },
         /**
@@ -41,7 +41,7 @@ define([
          * @param {[type]} value [description]
          * @param {[type]} type  Either local or session storage
          */
-        setItem : function (key, value, type) {     // jshint ignore:line
+        setItem : function(key, value, type) {     // jshint ignore:line
             if (this.isLocalStorageAvailable) {
                 window.localStorage.setItem(key, value);
             }
@@ -50,14 +50,14 @@ define([
          * Gets the item from the storage
          * @return {[type]} [description]
          */
-        getItem : function (key) {
+        getItem : function(key) {
             return window.localStorage.getItem(key);
         },
         /**
          * Removes the item from the storage
          * @return {[type]} [description]
          */
-        removeItem : function (key) {
+        removeItem : function(key) {
             window.localStorage.removeItem(key);
         },
 
@@ -90,7 +90,7 @@ define([
     });
 
     WebStorage.classMembers({
-        formatKey : function () {
+        formatKey : function() {
             return Util.format.apply(Util, arguments);
         }
     });
