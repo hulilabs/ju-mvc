@@ -245,7 +245,7 @@ var methods = {
     destroy : function() {
         if (this.data('tokenInputObject')) {
             this.data('tokenInputObject').clear();
-            var tmpInput = this;
+            var tmpInput = this; //jscs: ignore
             var closest = this.parent();
             closest.empty();
             tmpInput.show();
@@ -471,8 +471,9 @@ $.TokenList = function(input, url_or_data, settings) {
         // END of input_box creation
 
     // Keep reference for placeholder
-    if (settings.placeholder)
-        input_box.attr('placeholder', settings.placeholder)
+    if (settings.placeholder) {
+        input_box.attr('placeholder', settings.placeholder);
+    }
 
     // Keep a reference to the original input box
     var hidden_input = $(input)
@@ -795,7 +796,9 @@ $.TokenList = function(input, url_or_data, settings) {
         var $this_token = $($(input).data('settings').tokenFormatter(item, input));
         var readonly = item.readonly === true ? true : $(input).data('settings').readOnly;
 
-        if (readonly) $this_token.addClass($(input).data('settings').classes.tokenReadOnly);
+        if (readonly) {
+            $this_token.addClass($(input).data('settings').classes.tokenReadOnly);
+        }
 
         $this_token.addClass($(input).data('settings').classes.token).insertBefore(input_token);
 
@@ -932,7 +935,9 @@ $.TokenList = function(input, url_or_data, settings) {
         var callback = $(input).data('settings').onDelete;
 
         var index = token.prevAll().length;
-        if (index > selected_token_index) index--;
+        if (index > selected_token_index) {
+            index--;
+        }
 
         // Delete the token
         token.remove();
@@ -946,7 +951,9 @@ $.TokenList = function(input, url_or_data, settings) {
         if (saved_tokens.length == 0) {
             input_box.attr('placeholder', settings.placeholder)
         }
-        if (index < selected_token_index) selected_token_index--;
+        if (index < selected_token_index) {
+            selected_token_index--;
+        }
 
         // Update the hidden input
         update_hidden_input(saved_tokens, hidden_input);
@@ -970,8 +977,9 @@ $.TokenList = function(input, url_or_data, settings) {
     // Update the hidden input box value
     function update_hidden_input(saved_tokens, hidden_input) {
         var token_values = $.map(saved_tokens, function(el) {
-            if (typeof $(input).data('settings').tokenValue == 'function')
+            if (typeof $(input).data('settings').tokenValue == 'function') {
                 return $(input).data('settings').tokenValue.call(this, el);
+            }
 
             return el[$(input).data('settings').tokenValue];
         });
