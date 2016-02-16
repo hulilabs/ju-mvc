@@ -78,20 +78,20 @@ define([
                 callback = this[name];
             }
 
-            var router = this;
+            var self = this;
 
             log('Registering route ', route, name);
 
             History.route(name, path, route, function(fragment, options) {
-                var args = router._extractParameters(route, fragment);
+                var args = self._extractParameters(route, fragment);
 
                 if (callback) {
-                    callback.call(router, args, options);
+                    callback.call(self, args, options);
                 }
 
-                router.trigger.apply(router, ['route:' + name].concat(args));
-                router.trigger('route', name, args);
-                History.trigger('route', router, name, args);
+                self.trigger.apply(self, ['route:' + name].concat(args));
+                self.trigger('route', name, args);
+                History.trigger('route', self, name, args);
             });
 
             return this;
