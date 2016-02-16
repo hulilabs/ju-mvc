@@ -319,7 +319,7 @@ define([
         _handleRoute : function(controllerInfo, urlParams, options) {
             var self = this;
             /** runs all the defined middlewares for the route:before phase */
-            self.middleware.run(Middleware.PHASES.ROUTE, Middleware.SUBPHASES.BEFORE, controllerInfo, function(result) {
+            self.middleware.run(Middleware.PHASES.ROUTE, Middleware.SUBPHASES.BEFORE, controllerInfo, function(/*result*/) {
                 log('Handling route...', arguments);
                 // Check if the specified controller exists
                 // Check if the specified controller has been instanciated

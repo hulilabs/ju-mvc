@@ -9,11 +9,9 @@
  * (c) Huli Inc
  */
 
-
 /**
  *  // Router
  */
-
 
 define([
             'jquery',
@@ -24,8 +22,7 @@ define([
                     $,
                     ObservableClass,
                     Util
-                )
-{
+                ) {
     'use strict';
 
     // .History
@@ -51,9 +48,9 @@ define([
     var History = ObservableClass.extend({
         // The default interval to poll for hash changes, if necessary, is
         // twenty times a second.
-        interval: 50,
+        interval : 50,
 
-        init : function () {
+        init : function() {
             this.handlers = [];
             this.checkUrl = Util.bind(this.checkUrl, this);
 
@@ -65,13 +62,13 @@ define([
         },
 
         // Are we at the app root?
-        atRoot: function() {
+        atRoot : function() {
             var path = this.location.pathname.replace(/[^\/]$/, '$&/');
             return path === this.root && !this.getSearch();
         },
 
         // Does the pathname match the root?
-        matchRoot: function() {
+        matchRoot : function() {
             var path = this.decodeFragment(this.location.pathname);
             var root = path.slice(0, this.root.length - 1) + '/';
             return root === this.root;
@@ -80,26 +77,26 @@ define([
         // Unicode characters in `location.pathname` are percent encoded so they're
         // decoded for comparison. `%25` should not be decoded since it may be part
         // of an encoded parameter.
-        decodeFragment: function(fragment) {
+        decodeFragment : function(fragment) {
             return decodeURI(fragment.replace(/%25/g, '%2525'));
         },
 
         // In IE6, the hash fragment and search params are incorrect if the
         // fragment contains `?`.
-        getSearch: function() {
+        getSearch : function() {
             var match = this.location.href.replace(/#.*/, '').match(/\?.+/);
             return match ? match[0] : '';
         },
 
         // Gets the true hash value. Cannot use location.hash directly due to bug
         // in Firefox where location.hash will always be decoded.
-        getHash: function(window) {
+        getHash : function(window) {
             var match = (window || this).location.href.match(/#(.*)$/);
             return match ? match[1] : '';
         },
 
         // Get the pathname and search params, without the root.
-        getPath: function() {
+        getPath : function() {
             var path = this.decodeFragment(
                 this.location.pathname + this.getSearch()
             ).slice(this.root.length - 1);
@@ -107,7 +104,7 @@ define([
         },
 
         // Get the cross-browser normalized URL fragment from the path or hash.
-        getFragment: function(fragment) {
+        getFragment : function(fragment) {
             if (fragment == null) {
                 if (this._usePushState || !this._wantsHashChange) {
                     fragment = this.getPath();
@@ -119,7 +116,7 @@ define([
         },
 
         // Build fragment from handler name and arguments
-        getHandlerByName : function (name) {
+        getHandlerByName : function(name) {
             var handler = null;
 
             for (var i in this.handlers) {
@@ -136,24 +133,23 @@ define([
 
         // Start the hash change handling, returning `true` if the current URL matches
         // an existing route, and `false` otherwise.
-        start: function(options) {
+        start : function(options) {
             if (History.started) {
-            	throw new Error(".history has already been started");
+                throw new Error('.history has already been started');
             }
             History.started = true;
 
             // Figure out the initial configuration. Do we need an iframe?
             // Is pushState desired ... is it available?
-            this.options          = $.extend({}, {root: '/'}, this.options, options);
-            this.root             = this.options.root;
+            this.options = $.extend({}, {root : '/'}, this.options, options);
+            this.root = this.options.root;
             this._wantsHashChange = this.options.hashChange !== false;
             this._hasHashChange = 'onhashchange' in window;
             this._useHashChange = this._wantsHashChange && this._hasHashChange;
-            this._wantsPushState  = !!this.options.pushState;
+            this._wantsPushState = !!this.options.pushState;
             this._hasPushState = !!(this.history && this.history.pushState);
             this._usePushState = this._wantsPushState && this._hasPushState;
             this.fragment = this.getFragment();
-
 
             // Normalize root to always include a leading and trailing slash.
             this.root = ('/' + this.root + '/').replace(rootStripper, '/');
@@ -174,7 +170,7 @@ define([
                     // in a browser where it could be `pushState`-based instead...
                 } else if (this._hasPushState && this.atRoot()) {
                     this.navigate(this.getHash(), {
-                        replace: true
+                        replace : true
                     });
                 }
 
@@ -218,7 +214,7 @@ define([
 
         // Disable .history, perhaps temporarily. Not useful in a real app,
         // but possibly useful for unit testing Routers.
-        stop: function() {
+        stop : function() {
             // Add a cross-platform `removeEventListener` shim for older browsers.
             var removeEventListener = window.removeEventListener || function(eventName, listener) {
                 // This function will be available in older browsers
@@ -247,18 +243,18 @@ define([
 
         // Add a route to be tested when the fragment changes. Routes added later
         // may override previous routes.
-        route: function(name, path, route, callback) {
+        route : function(name, path, route, callback) {
             this.handlers.unshift({
-                name: name,
-                path: path,
-                route: route,
-                callback: callback
+                name : name,
+                path : path,
+                route : route,
+                callback : callback
             });
         },
 
         // Checks the current URL to see if it has changed, and if it has,
         // calls `loadUrl`, normalizing across the hidden iframe.
-        checkUrl: function() {
+        checkUrl : function() {
             var current = this.getFragment();
 
             // If the user pressed the back button, the iframe's hash will have
@@ -279,7 +275,7 @@ define([
         // Attempt to load the current URL fragment. If a route succeeds with a
         // match, returns `true`. If no defined routes matches the fragment,
         // returns `false`.
-        loadUrl: function(fragment, options) {
+        loadUrl : function(fragment, options) {
             // If the root doesn't match, no routes can match either.
             if (!this.matchRoot()) {
                 return false;
@@ -306,13 +302,13 @@ define([
         // route callback be fired (not usually desirable), or `replace: true`, if
         // you wish to modify the current URL without adding an entry to the history.
         // Or force if you want to navigate to that page even if the current fragment is selected
-        navigate: function(fragment, options) {
+        navigate : function(fragment, options) {
             if (!History.started) {
                 Logger.warn('History: not started...');
                 return false;
             }
             if (!options || options === true) {
-            	options = {trigger: options};
+                options = {trigger : options};
             }
 
             // Normalize the fragment.
@@ -376,7 +372,7 @@ define([
         },
         // Update the hash location, either replacing the current entry, or adding
         // a new one to the browser history.
-        _updateHash: function(location, fragment, replace) {
+        _updateHash : function(location, fragment, replace) {
             if (replace) {
                 var href = location.href.replace(/(javascript:|#).*$/, '');
                 location.replace(href + '#' + fragment);

@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/hulilabs/ju-mvc.svg?branch=master)](https://travis-ci.org/hulilabs/ju-mvc)
 # ju-mvc
 Ju-mvc provides utilities for handling dynamic websites, that will handle the routing logic for pages that are asynchronously loaded, to provide an efficient way for web-apps implementation.  Two of the most important sections are the route-to-page mapping and handling and the view handlers themselves. Here we'll introduce the latter ones.
 
@@ -15,7 +16,7 @@ Object with constants that can be used as selectors.  Commonly set in the `init`
 
     this.S = { view : '.site-content' }
 
-### t 
+### t
 Holds a reference to cached tags (i.e. jQuery elements). Set inside a `findLocalElems` method.  The members follow the convention $+varname. e.g.
 this.t  = { $view : $('.site-content') }
 

@@ -9,7 +9,6 @@
  * (c) Huli Inc
  */
 
-
 define([
             'jquery',
             'ju-shared/observable-class'
@@ -17,8 +16,7 @@ define([
         function(
                     $,
                     ObservableClass
-                )
-{
+                ) {
     'use strict';
 
     // Constants
@@ -32,7 +30,7 @@ define([
         /**
          * Default constructor
          */
-        init : function () {
+        init : function() {
             this.transitionableClass = 'transitionable';
 
             // Constants to control scroll mode
@@ -43,7 +41,7 @@ define([
             };
 
         },
-        applyTransition : function (currentPageSelec, nextPageSelec, direction) {
+        applyTransition : function(currentPageSelec, nextPageSelec, direction) {
             var self = this,
                 $currentPage = $(currentPageSelec),
                 $nextPage = $(nextPageSelec);
@@ -64,45 +62,45 @@ define([
             }
 
             $nextPage.css({
-                                'position' : 'absolute',
-                                'top' : 0,
+                                position : 'absolute',
+                                top : 0,
                                 '-webkit-transform' : translateRuleNext,
                                 '-moz-transform' : translateRuleNext,
                                 '-ms-transform' : translateRuleNext,
                                 '-o-transform' : translateRuleNext,
-                                'transform' : translateRuleNext
+                                transform : translateRuleNext
                              });
             $currentPage.css({
                                 '-webkit-transform' : translateRuleCurrent,
                                 '-moz-transform' : translateRuleCurrent,
                                 '-ms-transform' : translateRuleCurrent,
                                 '-o-transform' : translateRuleCurrent,
-                                'transform' : translateRuleCurrent
+                                transform : translateRuleCurrent
                              });
 
-            setTimeout(function () {
+            setTimeout(function() {
                 $nextPage.addClass(self.transitionableClass);
-                $nextPage.css({'display' : 'block'});
-                setTimeout(function () {
+                $nextPage.css({display : 'block'});
+                setTimeout(function() {
                     $nextPage.css({
                                     // 'display' : 'block',
                                     '-webkit-transform' : translateRuleNextEnd,
                                     '-moz-transform' : translateRuleNextEnd,
                                     '-ms-transform' : translateRuleNextEnd,
                                     '-o-transform' : translateRuleNextEnd,
-                                    'transform' : translateRuleNextEnd
+                                    transform : translateRuleNextEnd
                                  });
-                    setTimeout(function () {
+                    setTimeout(function() {
                         $nextPage.css({
-                                    'position' : '',
-                                    'top' : ''
+                                    position : '',
+                                    top : ''
                                  });
                         $currentPage.hide();
                      }, 300);
                 }, 0);
             }, 0);
         },
-        transition : function ($currentPage, $nextPage, from, scrollTopMode) {
+        transition : function($currentPage, $nextPage, from, scrollTopMode) {
             scrollTopMode = scrollTopMode || this.SCROLL.ANIM;
             log('TransitionManager: ', arguments);
 
@@ -115,7 +113,7 @@ define([
             }
             switch (scrollTopMode) {
                 case this.SCROLL.ANIM:
-                    $(SCROLL_TARGET).animate({ scrollTop: 0 });
+                    $(SCROLL_TARGET).animate({ scrollTop : 0 });
                     break;
                 case this.SCROLL.STATIC:
                     this.moveScrollTo(0);
@@ -127,34 +125,34 @@ define([
         /**
          *  Moves the scroll to a specific position
          */
-        moveScrollTo : function (position) {
+        moveScrollTo : function(position) {
             $(SCROLL_TARGET).scrollTop(position);
         },
         /**
          * Sets the scroll of the page to the bottom
          */
-        moveScrollToBottom : function () {
+        moveScrollToBottom : function() {
             // We use a timeout to allow the reflow + repaint process to complete
-            setTimeout(function () {
-                $(SCROLL_TARGET).animate({ scrollTop: $(document).height() });
+            setTimeout(function() {
+                $(SCROLL_TARGET).animate({ scrollTop : $(document).height() });
                 // $(SCROLL_TARGET).scrollTop($(document).height());
             }, 100);
         },
         /**
          * Animates the scroll to the specified position
          */
-        animateScrollTo : function (scrollTop, callback) {
+        animateScrollTo : function(scrollTop, callback) {
             // Flag to control that the callback is executed only once per method call
             var callbackExecuted = false;
 
             $(SCROLL_TARGET).animate(
                 // Property
                 {
-                    scrollTop: scrollTop
+                    scrollTop : scrollTop
                 },
                 // Options
                 {
-                    complete : function () {
+                    complete : function() {
                         if (callbackExecuted) {
                             return;
                         }
@@ -165,17 +163,17 @@ define([
                     }
                 });
         },
-        transitionSmooth : function ($currentPage, $nextPage, from) {
+        transitionSmooth : function($currentPage, $nextPage, from) {
             log('TransitionManager: ', arguments);
 
             if (!$currentPage || !from) {
-                $nextPage.addClass("page center");
+                $nextPage.addClass('page center');
                 // $nextPage.attr("class", "page center");
                 return;
             }
 
             // Position the page at the starting position of the animation
-            $nextPage.removeClass('transition center left right').addClass("class", "page " + from).show();
+            $nextPage.removeClass('transition center left right').addClass('class', 'page ' + from).show();
 
             $currentPage.one('webkitTransitionEnd', function(e) {
                 log('webkitTransitionEnd');
@@ -186,8 +184,8 @@ define([
             $('#main-tab-container')[0].offsetWidth;    // jshint ignore:line
 
             // Position the new page and the current page at the ending position of their animation with a transition class indicating the duration of the animation
-            $nextPage.addClass("transition center");
-            $currentPage.removeClass('center').addClass("page transition " + (from === "left" ? "right" : "left"));
+            $nextPage.addClass('transition center');
+            $currentPage.removeClass('center').addClass('page transition ' + (from === 'left' ? 'right' : 'left'));
         },
         // slidePageFrom : function (page, from) {
         //     var self = this,
@@ -222,16 +220,16 @@ define([
          * Returns the transition end property that works with the current browser
          * @return {[string]} [transition end property]
          */
-        getTransitionEndProperty : function () {
+        getTransitionEndProperty : function() {
             /**
              * Transition-end mapping
              */
             var map = {
-                'WebkitTransition' : 'webkitTransitionEnd',
-                'MozTransition' : 'transitionend',
-                'OTransition' : 'oTransitionEnd',
-                'msTransition' : 'MSTransitionEnd',
-                'transition' : 'transitionend'
+                WebkitTransition : 'webkitTransitionEnd',
+                MozTransition : 'transitionend',
+                OTransition : 'oTransitionEnd',
+                msTransition : 'MSTransitionEnd',
+                transition : 'transitionend'
             };
 
             /**
@@ -245,16 +243,16 @@ define([
                 }
             }
         },
-        getAnimationEndProperty : function () {
+        getAnimationEndProperty : function() {
             /**
              * Animation-end mapping
              */
             var map = {
-                'WebkitTransition' : 'webkitAnimationEnd',
-                'MozTransition' : 'animationend',
-                'OTransition' : 'oTransitionEnd',
-                'msTransition' : 'animationend',
-                'transition' : 'animationend'
+                WebkitTransition : 'webkitAnimationEnd',
+                MozTransition : 'animationend',
+                OTransition : 'oTransitionEnd',
+                msTransition : 'animationend',
+                transition : 'animationend'
             };
 
             /**
@@ -271,21 +269,21 @@ define([
         /**
          * Slide up a container with CSS3 transition
          */
-        slideUp : function ($group) {
+        slideUp : function($group) {
             var self = this,
                 $child = $group.children(),
                 transitionEndProp = self.getTransitionEndProperty();
             if (transitionEndProp) {
                 var childHeight = $child.height();
-                $group.css({ height: childHeight });
-                $group.one(transitionEndProp, function () {
+                $group.css({ height : childHeight });
+                $group.one(transitionEndProp, function() {
                      $group.removeClass('expanded transition');
                 });
                 // // Triggers a reflow to flush the expanded
                 $group[0].offsetWidth;  // jshint ignore:line
                 $group.addClass('transition');
                 $group[0].offsetWidth;  // jshint ignore:line
-                $group.css({ height: 0 });
+                $group.css({ height : 0 });
             } else {
                 $group.removeClass('expanded');
             }
@@ -293,23 +291,23 @@ define([
         /**
          * Slide down a container with CSS3 transition
          */
-        slideDown : function ($group) {
+        slideDown : function($group) {
             var self = this,
                 $child = $group.children(),
                 transitionEndProp = self.getTransitionEndProperty();
             if (transitionEndProp) {
-                $group.css({ height: 0 });
+                $group.css({ height : 0 });
                 $group.addClass('transition expanded');
-                $group.one(transitionEndProp, function () {
+                $group.one(transitionEndProp, function() {
                     $group.removeClass('transition');
                     // Triggers a reflow to flush the expanded
                     $group[0].offsetWidth;  // jshint ignore:line
-                    $group.css({ height: '' });
+                    $group.css({ height : '' });
                 });
                 // Triggers a reflow to flush the expanded
                 $group[0].offsetWidth;  // jshint ignore:line
                 var childHeight = $child.height();
-                $group.css({ height: childHeight });
+                $group.css({ height : childHeight });
             } else {
                 $group.addClass('expanded');
             }
