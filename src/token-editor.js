@@ -12,14 +12,16 @@
 /* jshint ignore:start */
 
 define([
-            'jquery',
-            'ju-shared/l10n'
-        ],
-        function(
-                    $,
-                    L10n
-                ) {
-    'use strict';
+        'jquery',
+        'ju-shared/l10n',
+        'ju-shared/base-proxy'
+    ],
+    function(
+        $,
+        L10n,
+        BaseProxy
+    ) {
+        'use strict';
 
 // Default settings
 var DEFAULT_SETTINGS = {
@@ -270,7 +272,7 @@ $.TokenList = function(input, url_or_data, settings) {
     //
     // Initialization
     //
-
+    var proxy = BaseProxy.getInst();
     // Configure the data source
     if ($.type(url_or_data) === 'string' || $.type(url_or_data) === 'function') {
         // Set the url to query against
@@ -1233,7 +1235,7 @@ $.TokenList = function(input, url_or_data, settings) {
                 }
                 log('assigning last Ajax request');
                 // Make the request
-                $.ajax(ajax_params);
+                proxy.makeAjaxRequest(ajax_params);
             } else if ($(input).data('settings').local_data) {
                 // Do the search through local data
                 var results = $.grep($(input).data('settings').local_data, function(row) {
