@@ -118,7 +118,15 @@ define([
          * @param {args}   arguments to replace by position in route path
          *
          * Alternative params can be passed as object for adding handler support
-         * { route: 'some-route-id', params : ['p1','p2'], routeHandled : function () {...} }
+         * {
+         *     route: 'some-route-id',
+         *     params : ['p1','p2'],
+         *     routeHandled : function () {...},
+         *     queryStrings : {
+         *         key1 : 'value1',
+         *         key2 : 'value2'
+         *     }
+         * }
          * @param {object} including keys for route (string), params (array), routeHandled (function)
          */
         navigateToRoute : function() {
@@ -128,6 +136,11 @@ define([
             if ($.isPlainObject(definition)) {
                 path = this.router.buildPath.apply(this.router, $.merge([definition.route], definition.params));
                 routeHandled = definition.routeHandled;
+
+                if ($.isPlainObject(definition.queryStrings) &&
+                    !$.isEmptyObject(definition.queryStrings)) {
+                    path += this.router.formatQueryStrings(definition.queryStrings);
+                }
             } else {
                 path = this.router.buildPath.apply(this.router, arguments);
             }
