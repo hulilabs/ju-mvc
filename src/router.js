@@ -129,6 +129,17 @@ define([
         getHistory : function() {
             return History;
         },
+
+        /**
+         * Uses jQuery's param function for formatting an object's keys and values into a
+         * query string format and concatenates them to the '?' separator.
+         * @param {Object} queryString object containing the query string that will be transformed
+         *                             to the format: key1=value1&key2=value2
+         */
+        formatQueryString : function(queryString) {
+            return Util.format('?{0}', $.param(queryString));
+        },
+
         // Bind all defined routes to `.history`. We have to reverse the
         // order of the routes here to support behavior where the most general
         // routes can be defined at the bottom of the route map.
