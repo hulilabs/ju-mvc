@@ -122,7 +122,7 @@ define([
          *     route: 'some-route-id',
          *     params : ['p1','p2'],
          *     routeHandled : function () {...},
-         *     queryStrings : {
+         *     queryString : {
          *         key1 : 'value1',
          *         key2 : 'value2'
          *     }
@@ -137,9 +137,10 @@ define([
                 path = this.router.buildPath.apply(this.router, $.merge([definition.route], definition.params));
                 routeHandled = definition.routeHandled;
 
-                if ($.isPlainObject(definition.queryStrings) &&
-                    !$.isEmptyObject(definition.queryStrings)) {
-                    path += this.router.formatQueryStrings(definition.queryStrings);
+                // builds the query string using the definition.queryString object
+                if ($.isPlainObject(definition.queryString) &&
+                    !$.isEmptyObject(definition.queryString)) {
+                    path += this.router.formatQueryString(definition.queryString);
                 }
             } else {
                 path = this.router.buildPath.apply(this.router, arguments);
