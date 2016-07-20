@@ -269,10 +269,12 @@ define([
         /**
          * Slide up a container with CSS3 transition
          */
-        slideUp : function($group) {
+        slideUp : function($group, targetCloseHeight) {
             var self = this,
                 $child = $group.children(),
-                transitionEndProp = self.getTransitionEndProperty();
+                transitionEndProp = self.getTransitionEndProperty(),
+                targetHeight = targetCloseHeight || 0;
+
             if (transitionEndProp) {
                 var childHeight = $child.height();
                 $group.css({ height : childHeight });
@@ -283,7 +285,7 @@ define([
                 $group[0].offsetWidth;  // jshint ignore:line
                 $group.addClass('transition');
                 $group[0].offsetWidth;  // jshint ignore:line
-                $group.css({ height : 0 });
+                $group.css({ height : targetHeight });
             } else {
                 $group.removeClass('expanded');
             }
