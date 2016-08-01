@@ -134,19 +134,30 @@ define([
                 path = '', routeHandled;
 
             if ($.isPlainObject(definition)) {
-                path = this.router.buildPath.apply(this.router, $.merge([definition.route], definition.params));
                 routeHandled = definition.routeHandled;
-
-                // builds the query string using the definition.queryString object
-                if ($.isPlainObject(definition.queryString) &&
-                    !$.isEmptyObject(definition.queryString)) {
-                    path += this.router.formatQueryString(definition.queryString);
-                }
+                path = this.buildPath(definition);
             } else {
                 path = this.router.buildPath.apply(this.router, arguments);
             }
 
             this.navigateToPage(path, routeHandled);
+        },
+        /**
+         * Builds a path using a definition object
+         * @param  {String} definition.route  the route's id
+         * @param  {Array}  definition.params url params array
+         * @param  {Object} definition.queryString queryString map object
+         * @return {String}
+         */
+        buildPath : function(definition) {
+            var path = this.router.buildPath.apply(this.router, $.merge([definition.route], definition.params));
+            // builds the query string using the definition.queryString object
+            if ($.isPlainObject(definition.queryString) &&
+                !$.isEmptyObject(definition.queryString)) {
+                path += this.router.formatQueryString(definition.queryString);
+            }
+
+            return path;
         },
         /**
          * Navigates to the previous page in the browser history API
@@ -163,15 +174,19 @@ define([
         },
         /**
          * Only pushes a route to the history API but doesn't navigate to it
+         * @param {String|Object} path url or definition object
          */
         pushRoute : function(path) {
-            this._navigate(path, { trigger : false });
+            var route = ('string' === typeof path) ? path : this.buildPath(path);
+            this._navigate(route, { trigger : false });
         },
         /**
          * Replace the current History API entry
+         * @param {String|Object} path url or definition object
          */
         replaceCurrentRoute : function(path) {
-            this._navigate(path, { replace : true });
+            var route = ('string' === typeof path) ? path : this.buildPath(path);
+            this._navigate(route, { replace : true });
         },
         /**
          * Reloads the currently loaded component
