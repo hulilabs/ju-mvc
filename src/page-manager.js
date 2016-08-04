@@ -174,10 +174,10 @@ define([
         },
         /**
          * Pushes a route to the history API but doesn't navigate to it
-         * @param {Object} definition object to push
+         * @param {Object} routeDefinition definition object to push
          */
-        pushRoute : function(route) {
-            var path = this.buildPath(route);
+        pushRoute : function(routeDefinition) {
+            var path = this.buildPath(routeDefinition);
             this.pushPath(path);
         },
         /**
@@ -188,15 +188,15 @@ define([
             this._navigate(path, { trigger : false });
         },
         /**
-         * Replace the current History API entry using a route definition
-         * @param {String|Object} path url or definition object
+         * Replaces the current History API entry using a route definition
+         * @param {Object} routeDefinition definition object
          */
-        replaceCurrentRoute : function(route) {
-            var path = this.buildroute(route);
+        replaceCurrentRoute : function(routeDefinition) {
+            var path = this.buildroute(routeDefinition);
             this.replaceCurrentPath(path);
         },
         /**
-         * Replace the current History API entry using a path
+         * Replaces the current History API entry using a path
          * @param {String} path url
          */
         replaceCurrentPath : function(path) {
