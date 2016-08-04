@@ -173,20 +173,34 @@ define([
             this._handleRoute({ controller : controllerPath }, args);
         },
         /**
-         * Only pushes a route to the history API but doesn't navigate to it
-         * @param {String|Object} path url or definition object
+         * Pushes a route to the history API but doesn't navigate to it
+         * @param {Object} definition object to push
          */
-        pushRoute : function(path) {
-            var route = ('string' === typeof path) ? path : this.buildPath(path);
-            this._navigate(route, { trigger : false });
+        pushRoute : function(route) {
+            var path = this.buildPath(route);
+            this.pushPath(path);
         },
         /**
-         * Replace the current History API entry
+         * Pushes a path to the history API but doesn't navigate to it
+         * @param  {String} path url to push
+         */
+        pushPath : function(path) {
+            this._navigate(path, { trigger : false });
+        },
+        /**
+         * Replace the current History API entry using a route definition
          * @param {String|Object} path url or definition object
          */
-        replaceCurrentRoute : function(path) {
-            var route = ('string' === typeof path) ? path : this.buildPath(path);
-            this._navigate(route, { replace : true });
+        replaceCurrentRoute : function(route) {
+            var path = this.buildroute(route);
+            this.replaceCurrentPath(path);
+        },
+        /**
+         * Replace the current History API entry using a path
+         * @param {String} path url
+         */
+        replaceCurrentPath : function(path) {
+            this._navigate(path, { replace : true });
         },
         /**
          * Reloads the currently loaded component
