@@ -192,7 +192,7 @@ define([
          * @param {Object} routeDefinition definition object
          */
         replaceCurrentRoute : function(routeDefinition) {
-            var path = this.buildroute(routeDefinition);
+            var path = this.buildPath(routeDefinition);
             this.replaceCurrentPath(path);
         },
         /**
