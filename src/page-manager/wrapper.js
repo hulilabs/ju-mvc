@@ -48,7 +48,8 @@ define([
             this.doStackController = !this.isRootController && this.hasWrapper;
 
             // Store reference to current controller (not necessarily the first in the stack)
-            this.currentController = this.doStackController ? controllerStack[controllerStackLength-1] : null;
+            this.currentController = this.doStackController ?
+                controllerStack[controllerStackLength - 1] : null;
         },
         /**
          * Prepare requested controller info based on how it is requested:
