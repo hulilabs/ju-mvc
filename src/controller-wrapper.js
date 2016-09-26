@@ -129,7 +129,7 @@ define([
          */
         wrapControllerBeforeHandlingRoute : function(controller, alreadyInStack, options) {
             // Verify options
-            options = options || {}
+            options = options || {};
 
             // Determine wrapper options
             if (controller[ControllerWrapper.MEMBER]) {
