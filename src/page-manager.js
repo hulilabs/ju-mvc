@@ -15,22 +15,22 @@
 define([
             'jquery',
             'ju-shared/observable-class',
-            'ju-mvc/router',
-            'ju-shared/util',
-            'ju-mvc/transition-manager',
             'ju-shared/dependency-loader',
+            'ju-shared/util',
+            'ju-mvc/controller-wrapper',
             'ju-mvc/middleware',
-            'ju-mvc/page-manager/wrapper'
+            'ju-mvc/router',
+            'ju-mvc/transition-manager'
         ],
         function(
             $,
             ObservableClass,
-            Router,
-            Util,
-            TransitionManager,
             DependencyLoader,
+            Util,
+            ControllerWrapper,
             Middleware,
-            RouteWrapper
+            Router,
+            TransitionManager
         ) {
 
     'use strict';
@@ -103,19 +103,20 @@ define([
 
             this._processRoutes(routes);
         },
-        // redirectToPage : function (path) {
-        //     this._navigate(path, { trigger: true, force: true });
-        //     // this.redirected = true;
-        // },
         /**
          * Methods to navigate to a new page given the path
+         *
+         * @param  {string}   path   route path (with or without hash #)
+         * @param  {mutliple} params (Optional) routing configuration
+         *                           - Function: handled callback
+         *                           - Object: parameters
          */
-        navigateToPage : function(path, definition) {
-            var routeHandled = $.isPlainObject(definition) && definition.routeHandled ?
-                definition.routeHandled : (typeof definition === 'function' ? definition : $.noop);
+        navigateToPage : function(path, params) {
+            var routeHandled = $.isPlainObject(params) && params.routeHandled ?
+                params.routeHandled : (typeof params === 'function' ? params : $.noop);
 
             // this.redirected = false;
-            this._navigate(path, $.extend(true, {}, definition, {
+            this._navigate(path, $.extend(true, {}, params, {
                 trigger : true,
                 force : true,
                 routeHandled : routeHandled
@@ -123,6 +124,7 @@ define([
         },
         /**
          * Find route by name and construct path
+         *
          * @param {string} name route name or ID
          * @param {args}   arguments to replace by position in route path
          *
@@ -136,6 +138,7 @@ define([
          *         key2 : 'value2'
          *     }
          * }
+         *
          * @param {object} including keys for route (string), params (array), routeHandled (function)
          */
         navigateToRoute : function() {
@@ -382,13 +385,13 @@ define([
                 // route = controllerInfo.route,
                     isSingleton = controllerInfo.singleton || false,
                     injectedDependencies = controllerInfo.dependencies || {},
-                    routeWrapper = new RouteWrapper(controllerInfo, self.controllerStack);
+                    controllerWrapper = new ControllerWrapper(controllerInfo, self.controllerStack);
 
                 // If a wrapper is define, then add current controller name as rootId
-                controllerInfo = routeWrapper.prepareControllerInfo();
+                controllerInfo = controllerWrapper.prepareControllerInfo(controllerInfo);
 
                 // adds the controller wrapper as a dependency to be loaded
-                routeWrapper.handleDependencies(injectedDependencies);
+                controllerWrapper.handleDependencies(injectedDependencies);
 
                 if (!controllerPath) {
                     log('PageManager: provided ControllerPath is null');
@@ -421,7 +424,7 @@ define([
                     // Check if valid instance was found
                     if (instance) {
                         // passes a controller instance to any available preprocessor
-                        var wrapperPromise = routeWrapper.wrapControllerBeforeHandlingRoute(instance, alreadyInStack, options);
+                        var wrapperPromise = controllerWrapper.wrapControllerBeforeHandlingRoute(instance, alreadyInStack, options);
 
                         // the flow continues once the wrapper is ready or if there's no wrapper
                         wrapperPromise.then(function() {
@@ -598,7 +601,7 @@ define([
 
                         if (dependenciesInfo) {
                             // sets reference to controller wrapper (if any)
-                            RouteWrapper.setWrapperInstanceIntoController(instance, dependenciesInfo);
+                            ControllerWrapper.setWrapperInstanceIntoController(instance, dependenciesInfo);
 
                             // Sets the dependencies in the instance itself (Syncronous operation for now)
                             self.dependencyLoader.setDependenciesInInstance(instance, injectedDependencies);
@@ -680,7 +683,7 @@ define([
                     // @TODO: find a way to destroy those controllers that are not singleton only
                     // maybe convert controllerRoutes to a array of objects?
                     controller.destroy();
-                    RouteWrapper.destroyWrapper(controller);
+                    ControllerWrapper.destroyWrapper(controller);
                     // Delete that instance of the controller
                     delete this.controllerDict[routeId];
                 } else {
