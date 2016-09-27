@@ -1,0 +1,10 @@
+grunt:
+    image: huli/grunt
+    volumes:
+        - .:/srv
+    working_dir: /srv
+
+karma:
+    image: huli/karma
+    volumes:
+        - .:/app
