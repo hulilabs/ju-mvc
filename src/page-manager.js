@@ -391,7 +391,7 @@ define([
                 controllerInfo = controllerWrapper.prepareControllerInfo(controllerInfo);
 
                 // adds the controller wrapper as a dependency to be loaded
-                controllerWrapper.handleDependencies(injectedDependencies);
+                injectedDependencies = controllerWrapper.handleDependencies(injectedDependencies);
 
                 if (!controllerPath) {
                     log('PageManager: provided ControllerPath is null');
@@ -424,7 +424,9 @@ define([
                     // Check if valid instance was found
                     if (instance) {
                         // passes a controller instance to any available preprocessor
-                        var wrapperPromise = controllerWrapper.wrapControllerBeforeHandlingRoute(instance, alreadyInStack, options);
+                        var wrapperPromise = ControllerWrapper.wrapControllerBeforeHandlingRoute(
+                            instance, controllerWrapper.getOptions(), alreadyInStack, options
+                        );
 
                         // the flow continues once the wrapper is ready or if there's no wrapper
                         wrapperPromise.then(function() {

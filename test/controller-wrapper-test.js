@@ -13,28 +13,213 @@
 
 define([
         'ju-mvc/controller-wrapper',
-        'ju-mvc/page-manager',
+        'testing-helper/dummy-controller',
+        'testing-helper/dummy-controller-wrapper',
         'testing-helper/routes'
     ],
     function(
         ControllerWrapper,
-        PageManager,
+        DummyController,
+        DummyControllerWrapper,
         routes
     ) {
 
-    describe('Controller Wrapper Tests', function() {
+    /**
+     * Mocks PageManager.controllerStack
+     */
+    var controllerStack;
 
-        // Test the class can be instantiated
-        it('Generates a new controller wrapper constructor', function() {
-            expect(ControllerWrapper).to.be.a('function');
+    /**
+     * Define a dummy controller for testing purposes
+     */
+    var dummyController;
 
-            var testControllerWrapperInstance = new ControllerWrapper(
-                routes['base-route'],
-                PageManager.controllerStack // getControllerStack?
-            );
+    // Preparation before each test
+    beforeEach(function() {
+        controllerStack = [];
+        dummyController = null;
+    });
 
+    describe('Controller wrapper: constructor', function() {
+
+        var getControllerWrapperInstance = function(stacked) {
+            if (stacked) {
+                controllerStack.push('base-route');
+            }
+
+            var controllerInfo = routes['route-with-simple-wrapper'],
+                testControllerWrapperInstance = new ControllerWrapper(controllerInfo, controllerStack);
+
+            return testControllerWrapperInstance;
+        };
+
+        it('generates a root-controller instance', function() {
+            var testControllerWrapperInstance = getControllerWrapperInstance(false);
             expect(testControllerWrapperInstance).to.be.a('object');
+            expect(testControllerWrapperInstance.doStackController, 'doStackController').to.be.false;
+        });
+
+        it('generates a stacked-controller instance', function() {
+            var testControllerWrapperInstance = getControllerWrapperInstance(true);
+            expect(testControllerWrapperInstance).to.be.a('object');
+            expect(testControllerWrapperInstance.doStackController, 'doStackController').to.be.true;
+        });
+
+        it('instance can prepare controller information', function() {
+            var controllerInfo = routes['route-with-simple-wrapper'];
+
+            var testControllerWrapperInstance = getControllerWrapperInstance(true);
+
+            expect(testControllerWrapperInstance).to.respondTo('prepareControllerInfo');
+            var controllerPreparedInfo = testControllerWrapperInstance.prepareControllerInfo(controllerInfo);
+            expect(controllerPreparedInfo).to.not.equal(controllerInfo);
         });
     });
 
+    describe('Controller wrapper: handle dependencies', function() {
+
+        var getControllerWrapperDependencies = function(routeName, stacked) {
+            if (stacked) {
+                controllerStack.push('base-route');
+            }
+
+            var controllerInfo = routes[routeName],
+                testControllerWrapperInstance = new ControllerWrapper(controllerInfo, controllerStack),
+                injectedDependencies = {};
+
+            return testControllerWrapperInstance.handleDependencies(injectedDependencies);
+        };
+
+        it('method', function() {
+            var testControllerWrapperInstance = new ControllerWrapper(routes['route-with-simple-wrapper'], controllerStack);
+            expect(testControllerWrapperInstance).to.respondTo('handleDependencies');
+        });
+
+        it('on root-controller', function() {
+            var testControllerWrapperInstance = new ControllerWrapper(routes['route-with-simple-wrapper'], controllerStack);
+                controllerWrapperDependencies = testControllerWrapperInstance.handleDependencies({});
+
+            expect(controllerWrapperDependencies, 'controllerWrapperDependencies').to.not.have.property('controllerWrapper');
+        });
+
+        context('on stacked-controller', function() {
+            it('for a simple wrapper', function() {
+                var controllerWrapperDependencies = getControllerWrapperDependencies('route-with-simple-wrapper', true);
+                expect(controllerWrapperDependencies, 'controllerWrapperDependencies').to.have.property('controllerWrapper');
+            });
+
+            it('for a complex wrapper', function() {
+                var controllerWrapperDependencies = getControllerWrapperDependencies('route-with-complex-wrapper', true);
+                expect(controllerWrapperDependencies, 'controllerWrapperDependencies').to.have.property('controllerWrapper');
+            });
+        });
+    });
+
+    describe('Controller wrapper: class member test', function() {
+        var dependenciesInfo;
+
+        // Defined as function and not as before() because the setWrapperInstanceIntoController
+        // must be validated before call and it can be reuse on destroy test
+        var createControllerWithWrapper = function() {
+            dummyController = new DummyController();
+
+            dependenciesInfo = {
+                controllerWrapper : {
+                    instance : DummyControllerWrapper,
+                    path : 'testing-helper/dummy-controller-wrapper'
+                }
+            };
+
+            ControllerWrapper.setWrapperInstanceIntoController(dummyController, dependenciesInfo);
+
+            return dummyController;
+        };
+
+        context('on page manager create controller instance', function() {
+            it('store controller wrapper instance as controller member', function() {
+                expect(ControllerWrapper).itself.to.respondTo('setWrapperInstanceIntoController');
+
+                createControllerWithWrapper();
+
+                expect(dependenciesInfo.controllerWrapper).to.be.undefined;
+                expect(dummyController[ControllerWrapper.MEMBER]).to.be.a('object');
+            });
+        });
+
+        context('on page manager controller loaded', function() {
+            it('wraps controller before handling route', function() {
+                expect(ControllerWrapper).itself.to.respondTo('wrapControllerBeforeHandlingRoute');
+
+                createControllerWithWrapper();
+
+                var controllerWrapperOptions = {}, alreadyInStack = false, options = {};
+
+                var wrapperPromise = ControllerWrapper.wrapControllerBeforeHandlingRoute(
+                    dummyController, controllerWrapperOptions, alreadyInStack, options
+                );
+
+                expect(wrapperPromise).to.be.a('Promise');
+            });
+        });
+
+        context('on page manager destroy', function() {
+            it('with controller wrapper', function() {
+                expect(ControllerWrapper).itself.to.respondTo('destroyWrapper');
+
+                createControllerWithWrapper();
+
+                expect(dummyController).to.respondTo('destroy');
+
+                ControllerWrapper.destroyWrapper(dummyController);
+
+                expect(dummyController[ControllerWrapper.MEMBER]).to.be.undefined;
+            });
+        });
+    });
+
+    describe('Controller wrapper: route processing', function() {
+
+        var getControllerPreparedInformation = function(routeName) {
+            var controllerInfo = routes[routeName],
+                testControllerWrapperInstance = new ControllerWrapper(controllerInfo, controllerStack),
+                controllerPreparedInfo = testControllerWrapperInstance.prepareControllerInfo(controllerInfo);
+
+            return controllerPreparedInfo;
+        };
+
+        context('without controller wrapper', function() {
+            it('for a basic route', function() {
+                var controllerPreparedInfo = getControllerPreparedInformation('base-route');
+                expect(controllerPreparedInfo).to.not.have.property('rootId');
+            });
+            it('for a sub route', function() {
+                var controllerPreparedInfo = getControllerPreparedInformation('sub-route');
+                expect(controllerPreparedInfo).to.have.property('rootId');
+                expect(controllerPreparedInfo.rootId).to.equal('base-route');
+            });
+        });
+
+        context('with controller wraper', function() {
+            it('for a route with simple wrapper', function() {
+                controllerStack.push('base-route');
+                var controllerPreparedInfo = getControllerPreparedInformation('route-with-simple-wrapper');
+                expect(controllerPreparedInfo).to.have.property('rootId');
+                expect(controllerPreparedInfo.rootId).to.equal('base-route');
+            });
+            it('for a route with a complex wrapper', function() {
+                controllerStack.push('base-route');
+                var controllerPreparedInfo = getControllerPreparedInformation('route-with-complex-wrapper');
+                expect(controllerPreparedInfo).to.have.property('rootId');
+                expect(controllerPreparedInfo.rootId).to.equal('base-route');
+            });
+            it('for a sub route with wrapper', function() {
+                controllerStack.push('any-route');
+                var controllerPreparedInfo = getControllerPreparedInformation('sub-route-with-wrapper');
+                expect(controllerPreparedInfo).to.have.property('rootId');
+                expect(controllerPreparedInfo.rootId).to.not.equal('any-route');
+                expect(controllerPreparedInfo.rootId).to.equal('base-route');
+            });
+        });
+
+    });
 });

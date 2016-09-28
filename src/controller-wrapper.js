@@ -53,8 +53,8 @@ define([
             controllerInfo = controllerInfo || {};
 
             // Determine wrapper state
-            var _hasWrapper = !!controllerInfo.controllerWrapper;
-            this.controllerWrapper = _hasWrapper ? controllerInfo.controllerWrapper : {};
+            var hasWrapper = !!controllerInfo.controllerWrapper;
+            this.controllerWrapper = hasWrapper ? controllerInfo.controllerWrapper : {};
 
             // Ease access to the number of controllers in stack
             var controllerStackLength = controllerStack.length;
@@ -62,7 +62,7 @@ define([
             // Flags : requested controller can be root or stacked
             // By default, a requested controller is root so it is not stacked
             this.isRootController = controllerStackLength === 0;
-            this.doStackController = !this.isRootController && _hasWrapper;
+            this.doStackController = !this.isRootController && hasWrapper;
 
             // Store reference to current controller (not necessarily the first in the stack)
             this.currentController = this.doStackController ?
@@ -72,6 +72,8 @@ define([
          * Prepare requested controller info based on how it is requested:
          * - Directly: display without wrapper (view)
          * - After: display wrapper (overlay)
+         *
+         * @param {Object} controllerInfo
          *
          * @return {Object} original or modified clone of controller info
          */
@@ -92,7 +94,9 @@ define([
          * Add the controller wrapper as a dependency to be loaded. Extracts wrapper path
          * from additional configuration and stores it in `dependencies` object
          *
-         * @param {object} injectedDependencies
+         * @param {object} injectedDependencies controller info dependencies
+         *
+         * @return {Object} original or modified injectedDependencies clone of controller info dependencies
          */
         handleDependencies : function(injectedDependencies) {
             if (injectedDependencies && injectedDependencies.controllerWrapper) {
@@ -100,23 +104,44 @@ define([
             }
 
             if (this.doStackController) {
-                // in this scenario, no options are provided
-                // and we have the path to the controller wrapper
+                var controllerWrapperDependency = {};
+
                 if ('string' === typeof this.controllerWrapper) {
-                    injectedDependencies.controllerWrapper = this.controllerWrapper;
-                    return;
-                }
-
-                // otherwise, we assume options are provided
-                // hence we check that wrapper path is provided
-                if (!this.controllerWrapper.wrapper) {
+                    // in this scenario, no options are provided
+                    // and we have the path to the controller wrapper
+                    controllerWrapperDependency = {
+                        controllerWrapper : this.controllerWrapper
+                    };
+                } else if (!this.controllerWrapper.wrapper) {
+                    // otherwise, we assume options are provided
+                    // hence we check that wrapper path is provided
                     Logger.error('ControllerWrapper: unable to load wrapper from route configuration');
+                } else {
+                    // we add the controller wrapper as a dependency
+                    controllerWrapperDependency = {
+                        controllerWrapper : this.controllerWrapper.wrapper
+                    };
                 }
 
-                // we add the controller wrapper as a dependency
-                injectedDependencies.controllerWrapper = this.controllerWrapper.wrapper;
+                // Clones the injected dependecies to avoid overriding
+                // the original dependencies information
+                injectedDependencies = $.extend(true, controllerWrapperDependency, injectedDependencies);
             }
+
+            return injectedDependencies;
         },
+        /**
+         * Controller wrapper information getter
+         *
+         * @return {object} stored reference to controllerInfo.controllerWrapper
+         */
+        getOptions : function() {
+            return ('string' === typeof this.controllerWrapper) ? {} : this.controllerWrapper;
+        }
+    });
+
+    ControllerWrapper.classMembers({
+        MEMBER : '__wrapper',
         /**
          * Passes a controller and controllerInfo to an external handler
          * that can use them to perform common tasks like view preprocessing
@@ -127,15 +152,13 @@ define([
          *
          * @return {Promise} chaining methods may user wrapper context as first argument
          */
-        wrapControllerBeforeHandlingRoute : function(controller, alreadyInStack, options) {
+        wrapControllerBeforeHandlingRoute : function(controller, controllerWrapperOptions, alreadyInStack, options) {
             // Verify options
             options = options || {};
 
             // Determine wrapper options
             if (controller[ControllerWrapper.MEMBER]) {
-                var controllerWrapperOptions = ('string' === typeof this.controllerWrapper) ?
-                        {} : this.controllerWrapper,
-                    wrapperOptions = $.extend(true, {},
+                var wrapperOptions = $.extend(true, {},
                         controllerWrapperOptions,
                         options.wrapperOptions
                     ),
@@ -149,11 +172,7 @@ define([
             // Return no wrapper context
             // This point is mostly reached by controllers without wrapper
             return Promise.resolve(null);
-        }
-    });
-
-    ControllerWrapper.classMembers({
-        MEMBER : '__wrapper',
+        },
         /**
          * Define ControllerWrapper.MEMBER with an instance of any loaded wrapper into controllerInstance
          * using the dependencies info, as the wrapper is loaded in the dependencies flow
@@ -182,6 +201,10 @@ define([
         destroyWrapper : function(controllerInstance) {
             if (controllerInstance && controllerInstance[ControllerWrapper.MEMBER]) {
                 controllerInstance[ControllerWrapper.MEMBER].destroy();
+
+                // Remove member instance
+                controllerInstance[ControllerWrapper.MEMBER] = null;
+                delete(controllerInstance[ControllerWrapper.MEMBER]);
             }
         }
     });
