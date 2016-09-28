@@ -1,4 +1,4 @@
-- type: serial
+- type: parallel
   steps:
   - service: grunt
     name: grunt lint

@@ -1,3 +1,5 @@
+[ ![Codeship Status for hulilabs/ju-mvc](https://codeship.com/projects/3d8dff30-67c6-0134-3551-12651ed1479b/status?branch=master)](https://codeship.com/projects/176280)
+
 # ju-mvc
 Ju-mvc provides utilities for handling dynamic websites, that will handle the routing logic for pages that are asynchronously loaded, to provide an efficient way for web-apps implementation.  Two of the most important sections are the route-to-page mapping and handling and the view handlers themselves. Here we'll introduce the latter ones.
 
