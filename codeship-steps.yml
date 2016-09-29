@@ -1,0 +1,8 @@
+- type: parallel
+  steps:
+  - service: grunt
+    name: grunt lint
+    command: lint
+  - service: karma
+    name: javascript test
+    command: bash -c "bower install --allow-root && npm test"

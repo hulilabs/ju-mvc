@@ -15,20 +15,22 @@
 define([
             'jquery',
             'ju-shared/observable-class',
-            'ju-mvc/router',
-            'ju-shared/util',
-            'ju-mvc/transition-manager',
             'ju-shared/dependency-loader',
-            'ju-mvc/middleware'
+            'ju-shared/util',
+            'ju-mvc/controller-wrapper',
+            'ju-mvc/middleware',
+            'ju-mvc/router',
+            'ju-mvc/transition-manager'
         ],
         function(
             $,
             ObservableClass,
-            Router,
-            Util,
-            TransitionManager,
             DependencyLoader,
-            Middleware
+            Util,
+            ControllerWrapper,
+            Middleware,
+            Router,
+            TransitionManager
         ) {
 
     'use strict';
@@ -101,19 +103,28 @@ define([
 
             this._processRoutes(routes);
         },
-        // redirectToPage : function (path) {
-        //     this._navigate(path, { trigger: true, force: true });
-        //     // this.redirected = true;
-        // },
         /**
          * Methods to navigate to a new page given the path
+         *
+         * @param  {string}   path   route path (with or without hash #)
+         * @param  {mutliple} params (Optional) routing configuration
+         *                           - Function: handled callback
+         *                           - Object: parameters
          */
-        navigateToPage : function(path, routeHandled) {
+        navigateToPage : function(path, params) {
+            var routeHandled = $.isPlainObject(params) && params.routeHandled ?
+                params.routeHandled : (typeof params === 'function' ? params : $.noop);
+
             // this.redirected = false;
-            this._navigate(path, { trigger : true, force : true, routeHandled : routeHandled });
+            this._navigate(path, $.extend(true, {}, params, {
+                trigger : true,
+                force : true,
+                routeHandled : routeHandled
+            }));
         },
         /**
          * Find route by name and construct path
+         *
          * @param {string} name route name or ID
          * @param {args}   arguments to replace by position in route path
          *
@@ -127,6 +138,7 @@ define([
          *         key2 : 'value2'
          *     }
          * }
+         *
          * @param {object} including keys for route (string), params (array), routeHandled (function)
          */
         navigateToRoute : function() {
@@ -140,7 +152,7 @@ define([
                 path = this.router.buildPath.apply(this.router, arguments);
             }
 
-            this.navigateToPage(path, routeHandled);
+            this.navigateToPage(path, definition);
         },
         /**
          * Builds a path using a definition object
@@ -372,18 +384,14 @@ define([
                     routeId = controllerInfo.routeId,
                 // route = controllerInfo.route,
                     isSingleton = controllerInfo.singleton || false,
-                    injectedDependencies = controllerInfo.dependencies;
+                    injectedDependencies = controllerInfo.dependencies || {},
+                    controllerWrapper = new ControllerWrapper(controllerInfo, self.controllerStack);
 
-                if (injectedDependencies && injectedDependencies.controllerWrapper) {
-                    Logger.warn('PageManager: invalid property name "controllerWrapper"');
-                }
+                // If a wrapper is define, then add current controller name as rootId
+                controllerInfo = controllerWrapper.prepareControllerInfo(controllerInfo);
 
                 // adds the controller wrapper as a dependency to be loaded
-                var wrapperOptions;
-                if (controllerInfo.controllerWrapper) {
-                    injectedDependencies = injectedDependencies || {};
-                    wrapperOptions = self._addWrapperDependency(injectedDependencies, controllerInfo.controllerWrapper);
-                }
+                injectedDependencies = controllerWrapper.handleDependencies(injectedDependencies);
 
                 if (!controllerPath) {
                     log('PageManager: provided ControllerPath is null');
@@ -416,7 +424,9 @@ define([
                     // Check if valid instance was found
                     if (instance) {
                         // passes a controller instance to any available preprocessor
-                        var wrapperPromise = self._wrapControllerBeforeHandlingRoute(instance, controllerInfo, alreadyInStack);
+                        var wrapperPromise = ControllerWrapper.wrapControllerBeforeHandlingRoute(
+                            instance, controllerWrapper.getOptions(), alreadyInStack, options
+                        );
 
                         // the flow continues once the wrapper is ready or if there's no wrapper
                         wrapperPromise.then(function() {
@@ -471,7 +481,7 @@ define([
                         removedControllers = self.controllerStack.splice(stackIndex + 1);
                         alreadyInStack = true;
                         log('Removed controllers: ', removedControllers);
-                        self._destroyControllers(removedControllers);
+                        self._destroyControllers(removedControllers, controllerInfo);
                         loadControllerCallback();
                     } else {
                         self._pushRouteToStack(routeId, controllerPath, injectedDependencies, isSingleton, loadControllerCallback);
@@ -484,7 +494,7 @@ define([
                         // This is a routeId that is not registered in the stack and behaves as a root controller
                         // we need to clear the stack and create an instance of it
                         // This will create a new ´virtual´ stack
-                        self._destroyControllers(self.controllerStack);
+                        self._destroyControllers(self.controllerStack, controllerInfo);
                         self.controllerStack.length = 0;
                         self._pushRouteToStack(routeId, controllerPath, injectedDependencies, isSingleton, loadControllerCallback);
                     } else {
@@ -503,7 +513,7 @@ define([
                         removedControllers = self.controllerStack.splice(rootStackIndex + 1);
                         alreadyInStack = true;
                         log('Removed controllers: ', removedControllers);
-                        self._destroyControllers(removedControllers);
+                        self._destroyControllers(removedControllers, controllerInfo);
                         loadControllerCallback();
                     }
                 }
@@ -523,7 +533,7 @@ define([
                 // the singleton instance controllers
                 instance = this.singletonControllerDict[controllerPath];
                 if (!instance) {
-                    self._createControllerInstance(controllerPath, injectedDependencies, function(instance) {
+                    self._createControllerInstance(controllerPath, injectedDependencies, isSingleton, function(instance) {
                         // Adding a new instance to the controller dict
                         self.singletonControllerDict[controllerPath] = instance;
 
@@ -542,7 +552,7 @@ define([
                 // Checks whether the instance was already created
                 if (!instance) {
 
-                    self._createControllerInstance(controllerPath, injectedDependencies, function(instance) {
+                    self._createControllerInstance(controllerPath, injectedDependencies, isSingleton, function(instance) {
                         // Adding a new instance to the controller dict
                         self.controllerDict[routeId] = instance;
 
@@ -565,10 +575,15 @@ define([
         /**
          * Creates a brand new instance of the controller
          * with the specified path and subscribes to the READY event
-         * @param  {string} controllerPath path to the controller
-         * @return {instaceof Controller}
+         *
+         * @param {string}   controllerPath        path to the controller
+         * @param {object}   injectedDependencies  other dependencies to load
+         * @param {boolean}  isSingleton           controller to be instance should be treated as singleton
+         * @param {function} callback              after instance created callback
+         *
+         * @return {instaceof ControllerClass}
          */
-        _createControllerInstance : function(controllerPath, injectedDependencies, callback) {
+        _createControllerInstance : function(controllerPath, injectedDependencies, isSingleton, callback) {
             var self = this;
 
             // Loads the injected dependencies and then continue the dispatch process
@@ -582,21 +597,20 @@ define([
 
                     if (ControllerClass) {
                         log('PageManager: Instanciating controller...');
-                        instance = ControllerClass.getInst ? ControllerClass.getInst() :
-                                                                 new ControllerClass();
+                        instance = (ControllerClass.getInst && isSingleton) ?
+                                        ControllerClass.getInst() : new ControllerClass();
                         instance.on(self.EV.READY, function() { self._dispatchToPage(controllerPath, instance); });
 
                         if (dependenciesInfo) {
                             // sets reference to controller wrapper (if any)
-                            self._setWrapperInstanceIntoController(instance, dependenciesInfo);
+                            ControllerWrapper.setWrapperInstanceIntoController(instance, dependenciesInfo);
 
                             // Sets the dependencies in the instance itself (Syncronous operation for now)
                             self.dependencyLoader.setDependenciesInInstance(instance, injectedDependencies);
-                            callback(instance);
-                        } else {
-                            // Continue the dispatch process inmediatelly
-                            callback(instance);
                         }
+
+                        // Continue the dispatch process inmediatelly
+                        callback(instance);
 
                     } else {
                         Logger.error('PageManager: Controller was not found: ', controllerPath);
@@ -671,90 +685,16 @@ define([
                     // @TODO: find a way to destroy those controllers that are not singleton only
                     // maybe convert controllerRoutes to a array of objects?
                     controller.destroy();
+                    ControllerWrapper.destroyWrapper(controller);
                     // Delete that instance of the controller
                     delete this.controllerDict[routeId];
                 } else {
                     Logger.warn('Could not destroy controller since it was not in the mapping');
                 }
             }
-        },
-
-        /**
-         * Sets a __wrapper member with an instance of any loaded wrapper into controllerInstance
-         * using the dependencies info, as the wrapper is loaded in the dependencies flow
-         *
-         * After __wrapper is set, `controllerWrapper` member is removed from `dependenciesInfo`
-         *
-         * @param {Object} controllerInstance
-         * @param {Object} dependenciesInfo
-         */
-        _setWrapperInstanceIntoController : function(controllerInstance, dependenciesInfo) {
-            // sets any controller wrapper loaded in the dependency flow
-            if (dependenciesInfo.controllerWrapper &&
-                dependenciesInfo.controllerWrapper.instance) {
-
-                controllerInstance.__wrapper = controllerInstance.__wrapper ||
-                                               new dependenciesInfo.controllerWrapper.instance(controllerInstance);
-                dependenciesInfo.controllerWrapper = null;
-                delete(dependenciesInfo.controllerWrapper);
-            }
-        },
-
-        /**
-         * Extracts wrapper path from additional configuration and stores it
-         * in `dependencies` object
-         * @param  {Object} dependencies      current controller's dependency configuration
-         * @param  {Object} controllerWrapper configuration added in routes
-         * @return {Object}
-         */
-        _addWrapperDependency : function(dependencies, controllerWrapper) {
-            // in this scenario, no options are provided and we have the path
-            // to the controller wrapper
-            if ('string' === typeof controllerWrapper) {
-                dependencies.controllerWrapper = controllerWrapper;
-                return;
-            }
-
-            // otherwise, we assume options are provided
-            // hence we check that wrapper path is provided
-            if (!controllerWrapper.wrapper) {
-                Logger.error('PageManager: unable to load wrapper from route configuration');
-            }
-
-            // we add the controller wrapper as a dependency
-            dependencies.controllerWrapper = controllerWrapper.wrapper;
-        },
-
-        /**
-         * Passes a controller and controllerInfo to an external handler
-         * that can use them to perform common tasks like view preprocessing
-         * @param  {Object} controller     a controller instance that will handle a route
-         * @param  {Object} controllerInfo context added in the route configuration
-         * @return {Promise}
-         */
-        _wrapControllerBeforeHandlingRoute : function(controller, controllerInfo, alreadyInStack) {
-            if (controller.__wrapper) {
-                var wrapperOptions = ('string' === typeof controllerInfo.controllerWrapper) ?
-                                     {} : controllerInfo.controllerWrapper,
-                    wrapperPromise = new Promise(function(resolve) {
-                                        controller.__wrapper.wrap(resolve, wrapperOptions, alreadyInStack);
-                                    });
-                return wrapperPromise;
-            }
-
-            return Promise.resolve(null);
         }
     });
 
-    /**
-     * Initializing Router and History
-     * // All routes should be registered at this point
-     */
-    // $(function () {
-    //     HH.history.start();
-    // });
-
-    // window.PageManager = PageManager.getInst();
     /**
      * Export models
      */

@@ -1,4 +1,5 @@
-[![Build Status](https://travis-ci.org/hulilabs/ju-mvc.svg?branch=master)](https://travis-ci.org/hulilabs/ju-mvc)
+[ ![Codeship Status for hulilabs/ju-mvc](https://codeship.com/projects/3d8dff30-67c6-0134-3551-12651ed1479b/status?branch=master)](https://codeship.com/projects/176280)
+
 # ju-mvc
 Ju-mvc provides utilities for handling dynamic websites, that will handle the routing logic for pages that are asynchronously loaded, to provide an efficient way for web-apps implementation.  Two of the most important sections are the route-to-page mapping and handling and the view handlers themselves. Here we'll introduce the latter ones.
 
@@ -47,3 +48,13 @@ Uses a set of resources to build a set of elements.  Should call the following m
 
 ### destroy
 Called when a controller is removed from the controller stack (e.g. when we leave the page).
+
+# Running the tests
+You can either run the tests directly on your host, by executing (on this project's root):
+```
+bower install
+npm install
+npm test
+```
+
+Or using a [docker container with karma](https://github.com/hulilabs/karma). Just note that the tests could fail if you previously ran `npm install`, due to a workaround to run the tests either with or without docker (by removing the `node_modules` folder, the tests will work again).
