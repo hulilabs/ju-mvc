@@ -252,7 +252,7 @@ define([
          * @return {Function} controller that handles that route
          */
         getRouteController : function(route) {
-            return this.routesMap[route]  ? this.routesMap[route].controller : null;
+            return this.routesMap[route] ? this.routesMap[route].controller : null;
         },
 
         /**
