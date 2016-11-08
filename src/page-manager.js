@@ -320,7 +320,7 @@ define([
             var self = this,
                 router = this.router,
                 routeHandler = 'routeHandler';
-            log('PageManager: _processRoutes..', routerControllerMap);
+            Logger.log('PageManager: _processRoutes..', routerControllerMap);
 
             this.routesMap = $.extend({}, this.routesMap, routerControllerMap);
             $.each(routerControllerMap, function(routeId, controllerInfo) {
@@ -331,7 +331,7 @@ define([
                     return;
                 }
                 controllerInfo.routeId = routeId;
-                log('PageManager: Processing route..', routeId, controllerInfo, routeHandler);
+                Logger.log('PageManager: Processing route..', routeId, controllerInfo, routeHandler);
                 router.route(controllerInfo.route, routeId, function(urlParams, options) {
                                                             urlParams = self._normalizeQueryParams(urlParams);
                                                             self._handleRoute(controllerInfo, urlParams, options);
