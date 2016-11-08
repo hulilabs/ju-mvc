@@ -48,7 +48,7 @@ define([
             this.router = new Router();
 
             // Stores a reference to all the routes registered in the page manager
-            this.routesMap = null;
+            this.routesMap = {};
 
             // Keeps a track of the controller display order ( would be useful in the overlay order )
             // Stores routeIds
@@ -243,6 +243,18 @@ define([
                 route = currentFragment.split('?');
             return route[0];
         },
+
+        /**
+         * Returns the controller path for a particular route
+         *
+         * @param {string} route that is used as a key to get the configuration of the route
+         *
+         * @return {Function} controller that handles that route
+         */
+        getRouteController : function(route) {
+            return this.routesMap[route]  ? this.routesMap[route].controller : null;
+        },
+
         /**
          * Returns the current params in the route
          */
@@ -310,7 +322,7 @@ define([
                 routeHandler = 'routeHandler';
             log('PageManager: _processRoutes..', routerControllerMap);
 
-            this.routesMap = routerControllerMap;
+            this.routesMap = $.extend({}, this.routesMap, routerControllerMap);
             $.each(routerControllerMap, function(routeId, controllerInfo) {
                 if (!$.isPlainObject(controllerInfo) ||
                     !controllerInfo.route ||
