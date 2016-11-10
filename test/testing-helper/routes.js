@@ -19,7 +19,12 @@ define([], function() {
     var routes = {
         // Base route
         'base-route' : {
-            route : '/some/path'
+            route : '/some/path',
+        },
+        // Base route with controller
+        'base-route-with-controller' : {
+            route : '/some/path',
+            controller : 'testing-helper/dummy-controller'
         },
         // Sub route
         'sub-route' : {
@@ -45,6 +50,7 @@ define([], function() {
             rootId : 'base-route',
             controllerWrapper : 'testing-helper/dummy-controller-wrapper'
         }
+
     };
     // jscs:enable disallowQuotedKeysInObjects
 

@@ -20,7 +20,8 @@ define([
             'ju-mvc/controller-wrapper',
             'ju-mvc/middleware',
             'ju-mvc/router',
-            'ju-mvc/transition-manager'
+            'ju-mvc/transition-manager',
+            'ju-shared/logger'
         ],
         function(
             $,
@@ -48,7 +49,7 @@ define([
             this.router = new Router();
 
             // Stores a reference to all the routes registered in the page manager
-            this.routesMap = null;
+            this.routesMap = {};
 
             // Keeps a track of the controller display order ( would be useful in the overlay order )
             // Stores routeIds
@@ -243,6 +244,18 @@ define([
                 route = currentFragment.split('?');
             return route[0];
         },
+
+        /**
+         * Returns the controller path for a particular route
+         *
+         * @param {string} route that is used as a key to get the configuration of the route
+         *
+         * @return {Function} controller that handles that route
+         */
+        getRouteController : function(route) {
+            return this.routesMap[route] ? this.routesMap[route].controller : null;
+        },
+
         /**
          * Returns the current params in the route
          */
@@ -308,9 +321,9 @@ define([
             var self = this,
                 router = this.router,
                 routeHandler = 'routeHandler';
-            log('PageManager: _processRoutes..', routerControllerMap);
+            Logger.log('PageManager: _processRoutes..', routerControllerMap);
 
-            this.routesMap = routerControllerMap;
+            this.routesMap = $.extend({}, this.routesMap, routerControllerMap);
             $.each(routerControllerMap, function(routeId, controllerInfo) {
                 if (!$.isPlainObject(controllerInfo) ||
                     !controllerInfo.route ||
@@ -319,7 +332,7 @@ define([
                     return;
                 }
                 controllerInfo.routeId = routeId;
-                log('PageManager: Processing route..', routeId, controllerInfo, routeHandler);
+                Logger.log('PageManager: Processing route..', routeId, controllerInfo, routeHandler);
                 router.route(controllerInfo.route, routeId, function(urlParams, options) {
                                                             urlParams = self._normalizeQueryParams(urlParams);
                                                             self._handleRoute(controllerInfo, urlParams, options);
