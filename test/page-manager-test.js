@@ -21,7 +21,7 @@ define([
     ) {
 
     describe('Page Manager', function() {
-        it ('returns the controller of a particular route', function(){
+        it ('returns the controller of a particular route', function() {
             PageManager.routes(routes);
             var route = 'base-route-with-controller',
                 originalController = routes[route].controller,
