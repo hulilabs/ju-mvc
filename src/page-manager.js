@@ -20,7 +20,8 @@ define([
             'ju-mvc/controller-wrapper',
             'ju-mvc/middleware',
             'ju-mvc/router',
-            'ju-mvc/transition-manager'
+            'ju-mvc/transition-manager',
+            'ju-shared/logger'
         ],
         function(
             $,
