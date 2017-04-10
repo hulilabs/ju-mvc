@@ -5,4 +5,4 @@
     command: lint
   - service: karma
     name: javascript test
-    command: bash -c "bower install --allow-root && npm test"
+    command: bash -c "bower install --allow-root && karma start karma.conf.js"

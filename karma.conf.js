@@ -28,7 +28,6 @@ module.exports = function(config) {
     files: [
       // including polyfill twice, to support both docker and native test run
       'node_modules/babel-polyfill/dist/polyfill.js',
-      '/install/node_modules/babel-polyfill/dist/polyfill.js',
       'test/main.js',
       {pattern: 'src/**/*.js', included: false},
       {pattern: 'test/**/*.js', included: false}
