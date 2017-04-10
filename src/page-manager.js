@@ -343,7 +343,7 @@ define([
          * Method to navigate to a new page given the path
          */
         _navigate : function(path, options) {
-            this.middleware.run(Middleware.PHASES.ROUTE, Middleware.SUBPHASES.BEFORE_UNLOAD, null, function() {
+            this.middleware.run(Middleware.PHASES.ROUTE, Middleware.SUBPHASES.BEFORE_UNLOAD, arguments, function() {
                 log('PageManager: navigating to...', path, options);
                 this.router.navigate.call(this, path, options);
             }.bind(this));
