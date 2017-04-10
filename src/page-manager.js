@@ -343,8 +343,10 @@ define([
          * Method to navigate to a new page given the path
          */
         _navigate : function(path, options) {
-            log('PageManager: navigating to...', path, options);
-            this.router.navigate.call(this, path, options);
+            this.middleware.run(Middleware.PHASES.ROUTE, Middleware.SUBPHASES.BEFORE_UNLOAD, null, function() {
+                log('PageManager: navigating to...', path, options);
+                this.router.navigate.call(this, path, options);
+            }.bind(this));
         },
         /**
          * Given a routeId we will look for it in the controller stack and return the index.

@@ -267,7 +267,8 @@ function(
         SUBPHASES : {
             BEFORE : 'before',
             DURING : 'during',
-            AFTER : 'after'
+            AFTER : 'after',
+            BEFORE_UNLOAD : 'beforeUnload'
         },
 
         /**
