@@ -463,8 +463,6 @@ define([
                             Logger.error(err);
                         });
 
-                    } else {
-                        Logger.warn('Could not find controller since it was not in the mapping', isSingleton, controllerPath, routeId);
                     }
                 };
 
