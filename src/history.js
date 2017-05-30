@@ -330,7 +330,7 @@ define([
             fragment = fragment.replace(pathStripper, '');
 
             if (!options.force && (this.fragment === fragment)) {
-                Logger.warn('History: already in the same fragment', fragment);
+                // History: already in the same fragment
                 return;
             }
 
