@@ -701,8 +701,6 @@ define([
                     ControllerWrapper.destroyWrapper(controller);
                     // Delete that instance of the controller
                     delete this.controllerDict[routeId];
-                } else {
-                    Logger.warn('Could not destroy controller since it was not in the mapping');
                 }
             }
         }
