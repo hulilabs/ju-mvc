@@ -580,7 +580,7 @@ _pushRouteToStack : function(routeId, controllerPath, isSingleton, callback) {
  * Creates a brand new instance of the controller
  * with the specified path and subscribes to the READY event
  *
- * @param {Promise}  controllerPath        promise with the path to the controller
+ * @param {Promise}  controllerPath        promise with the path to the controller.
  * @param {boolean}  isSingleton           controller to be instance should be treated as singleton
  * @param {function} callback              after instance created callback
  *
