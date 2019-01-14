@@ -15,7 +15,6 @@
 define([
             'jquery',
             'ju-shared/observable-class',
-            'ju-shared/dependency-loader',
             'ju-shared/util',
             'ju-mvc/controller-wrapper',
             'ju-mvc/middleware',
@@ -26,7 +25,6 @@ define([
         function(
             $,
             ObservableClass,
-            DependencyLoader,
             Util,
             ControllerWrapper,
             Middleware,
@@ -81,9 +79,6 @@ define([
 
             // Stores a local reference to the transition manager
             this.transitionManager = TransitionManager.getInst();
-
-            // Stores a local reference to the dependency loader
-            this.dependencyLoader = DependencyLoader.getInst();
 
             // Register events
             this.EV = {
@@ -399,14 +394,10 @@ define([
                     routeId = controllerInfo.routeId,
                 // route = controllerInfo.route,
                     isSingleton = controllerInfo.singleton || false,
-                    injectedDependencies = controllerInfo.dependencies || {},
                     controllerWrapper = new ControllerWrapper(controllerInfo, self.controllerStack);
 
                 // If a wrapper is define, then add current controller name as rootId
                 controllerInfo = controllerWrapper.prepareControllerInfo(controllerInfo);
-
-                // adds the controller wrapper as a dependency to be loaded
-                injectedDependencies = controllerWrapper.handleDependencies(injectedDependencies);
 
                 if (!controllerPath) {
                     log('PageManager: provided ControllerPath is null');
@@ -497,7 +488,7 @@ define([
                         self._destroyControllers(removedControllers, controllerInfo);
                         loadControllerCallback();
                     } else {
-                        self._pushRouteToStack(routeId, controllerPath, injectedDependencies, isSingleton, loadControllerCallback);
+                        self._pushRouteToStack(routeId, controllerPath, isSingleton, loadControllerCallback);
                     }
                 } else {
 
@@ -509,7 +500,7 @@ define([
                         // This will create a new ´virtual´ stack
                         self._destroyControllers(self.controllerStack, controllerInfo);
                         self.controllerStack.length = 0;
-                        self._pushRouteToStack(routeId, controllerPath, injectedDependencies, isSingleton, loadControllerCallback);
+                        self._pushRouteToStack(routeId, controllerPath, isSingleton, loadControllerCallback);
                     } else {
                         // If this route was already in the stack then we
                         // Remove all the controllers in the stack beyond
@@ -536,7 +527,7 @@ define([
          * Pushes the routeId to the top of the stack
          * and creates the related controller if it doesn't exist already
          */
-        _pushRouteToStack : function(routeId, controllerPath, injectedDependencies, isSingleton, callback) {
+        _pushRouteToStack : function(routeId, controllerPath, isSingleton, callback) {
             var self = this,
                 instance = null;
 
@@ -546,7 +537,7 @@ define([
                 // the singleton instance controllers
                 instance = this.singletonControllerDict[controllerPath];
                 if (!instance) {
-                    self._createControllerInstance(controllerPath, injectedDependencies, isSingleton, function(instance) {
+                    self._createControllerInstance(controllerPath, isSingleton, function(instance) {
                         // Adding a new instance to the controller dict
                         self.singletonControllerDict[controllerPath] = instance;
 
@@ -565,7 +556,7 @@ define([
                 // Checks whether the instance was already created
                 if (!instance) {
 
-                    self._createControllerInstance(controllerPath, injectedDependencies, isSingleton, function(instance) {
+                    self._createControllerInstance(controllerPath, isSingleton, function(instance) {
                         // Adding a new instance to the controller dict
                         self.controllerDict[routeId] = instance;
 
@@ -589,47 +580,31 @@ define([
          * Creates a brand new instance of the controller
          * with the specified path and subscribes to the READY event
          *
-         * @param {string}   controllerPath        path to the controller
-         * @param {object}   injectedDependencies  other dependencies to load
+         * @param {string}   controllerPath        promise with the path to the controller
          * @param {boolean}  isSingleton           controller to be instance should be treated as singleton
          * @param {function} callback              after instance created callback
          *
          * @return {instaceof ControllerClass}
          */
-        _createControllerInstance : function(controllerPath, injectedDependencies, isSingleton, callback) {
+        _createControllerInstance : function(controllerPath, isSingleton, callback) {
             var self = this;
+            // Once the dependencies are loaded then fetch the controller itself
+            controllerPath().then(function(ControllerClass) {
+                var instance = null;
 
-            // Loads the injected dependencies and then continue the dispatch process
-            var getDependenciesPromise =
-                    self.dependencyLoader.getDependencies(injectedDependencies);
+                if (ControllerClass) {
+                    log('PageManager: Instanciating controller...');
+                    instance = (ControllerClass.getInst && isSingleton) ?
+                                    ControllerClass.getInst() : new ControllerClass();
+                    instance.on(self.EV.READY, function() { self._dispatchToPage(controllerPath, instance); });
 
-            getDependenciesPromise.then(function(dependenciesInfo) {
-                // Once the dependencies are loaded then fetch the controller itself
-                require([controllerPath], function(ControllerClass) {
-                    var instance = null;
+                    // Continue the dispatch process inmediatelly
+                    callback(instance);
 
-                    if (ControllerClass) {
-                        log('PageManager: Instanciating controller...');
-                        instance = (ControllerClass.getInst && isSingleton) ?
-                                        ControllerClass.getInst() : new ControllerClass();
-                        instance.on(self.EV.READY, function() { self._dispatchToPage(controllerPath, instance); });
-
-                        if (dependenciesInfo) {
-                            // sets reference to controller wrapper (if any)
-                            ControllerWrapper.setWrapperInstanceIntoController(instance, dependenciesInfo);
-
-                            // Sets the dependencies in the instance itself (Syncronous operation for now)
-                            self.dependencyLoader.setDependenciesInInstance(instance, injectedDependencies);
-                        }
-
-                        // Continue the dispatch process inmediatelly
-                        callback(instance);
-
-                    } else {
-                        Logger.error('PageManager: Controller was not found: ', controllerPath);
-                    }
-                });
-            })
+                } else {
+                    Logger.error('PageManager: Controller was not found: ', controllerPath);
+                }
+            });
             ['catch'](function(err) {
                 Logger.error(err);
             });
