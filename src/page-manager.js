@@ -382,7 +382,8 @@ define([
          * @todo refactor this method, is too big
          */
         _handleRoute : function(controllerInfo, urlParams, options) {
-            var self = this;
+            var self = this,
+                controllerIdentifier = controllerInfo.controllerIdentifier;
             /** runs all the defined middlewares for the route:before phase */
             self.middleware.run(Middleware.PHASES.ROUTE, Middleware.SUBPHASES.BEFORE, controllerInfo, function(/*result*/) {
                 log('Handling route...', arguments);
@@ -417,7 +418,7 @@ define([
                     // At this point the instance should already exists, because
                     // it was already in the stack or it was created by the _pushRouteToStack
                     // method
-                    var instance = isSingleton ? self.singletonControllerDict[controllerPath]
+                    var instance = isSingleton ? self.singletonControllerDict[controllerIdentifier]
                         : self.controllerDict[routeId];
                     log('PageManager: isSingleton? ', isSingleton);
 
@@ -488,7 +489,7 @@ define([
                         self._destroyControllers(removedControllers, controllerInfo);
                         loadControllerCallback();
                     } else {
-                        self._pushRouteToStack(routeId, controllerPath, isSingleton, loadControllerCallback);
+                        self._pushRouteToStack(routeId, controllerPath, isSingleton, loadControllerCallback, controllerIdentifier);
                     }
                 } else {
 
@@ -500,7 +501,7 @@ define([
                         // This will create a new ´virtual´ stack
                         self._destroyControllers(self.controllerStack, controllerInfo);
                         self.controllerStack.length = 0;
-                        self._pushRouteToStack(routeId, controllerPath, isSingleton, loadControllerCallback);
+                        self._pushRouteToStack(routeId, controllerPath, isSingleton, loadControllerCallback, controllerIdentifier);
                     } else {
                         // If this route was already in the stack then we
                         // Remove all the controllers in the stack beyond
@@ -527,7 +528,7 @@ define([
          * Pushes the routeId to the top of the stack
          * and creates the related controller if it doesn't exist already
          */
-        _pushRouteToStack : function(routeId, controllerPath, isSingleton, callback) {
+        _pushRouteToStack : function(routeId, controllerPath, isSingleton, callback, controllerIdentifier) {
             var self = this,
                 instance = null;
 
@@ -535,11 +536,11 @@ define([
                 // If this route is using a singleton instance then we
                 // check if an instance has already been created from
                 // the singleton instance controllers
-                instance = this.singletonControllerDict[controllerPath];
+                instance = this.singletonControllerDict[controllerIdentifier];
                 if (!instance) {
                     self._createControllerInstance(controllerPath, isSingleton, function(instance) {
                         // Adding a new instance to the controller dict
-                        self.singletonControllerDict[controllerPath] = instance;
+                        self.singletonControllerDict[controllerIdentifier] = instance;
 
                         log('PageManager: _pushRouteToStack: ', routeId);
                         self.controllerStack.push(routeId);
